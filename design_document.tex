@@ -39,7 +39,10 @@
 
 \section{Dataset}
 
-\section{Evaluation and Metriks}
+We will preprocess our data by generating the citation graph from the dataset and computing a similarity measure between each node in the graph. For this purpose we will experiment with different metrics or a combination, specifically bibliographic coupling, co-citation and personalized page rank.
+Training samples will be generated from the dataset as follows. The input for our model will consist of two parts. First, a query which will be a small section of a paper from the datset. Second a different full paper from the dataset. The target variable will be the computed similarity score of the two papers.
+
+\section{Evaluation and Metrics}
 By using the citation graph, we can evaluate the performance of our recommender system in an offline setting. TODO:
 elaborate further how exactly. Our evaluation method is based on the "leave-one-out" strategy
 (\cite{EkstrandResearchLists}), ... TODO describe what we will be doing.
