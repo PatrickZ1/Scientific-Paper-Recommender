@@ -1,6 +1,10 @@
 \documentclass{article}
 \usepackage[utf8]{inputenc}
-\usepackage{lipsum} % For placeholder text
+\usepackage{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit}
+\usepackage[backend=biber,style=numeric,sortcites,sorting=nty,backref,natbib,hyperref]{biblatex}
+\addbibresource{references.bib}
 
 \title{Design Document - Recommender System for Research Papers \\ \small Group 17}
 \author{
@@ -16,7 +20,129 @@
 \maketitle
 
 \begin{abstract}
-  \lipsum[1-2]
+  With the evergrowing amount of research papers being published, it becomes increasingly difficult for researchers to
+  stay updated in their respective fields and discover relevant literature. Especially finding the original sources and
+  base materials for a specific topic can be a tedious task. To address this challenge, we propose the development and
+  evaluation of a recommender system specifically designed to suggest relevant research papers based on user queries or
+  existing papers. Due to the difficulty of user studies and live evaluations, we will focus on offline evaluation
+  methods and how to use the citation graph for fine tuning and evaluation. Furhtermore, we will compare different models
+  and fine tuning methods to minimize the training effort in relation to achieved performance.
 \end{abstract}
+
+\section{Members and Roles}
+\begin{itemize}
+  \item Matthias Bergmann: ---
+  \item Maximilian Herczegh: ---
+  \item Alexander Scheucher: ---
+  \item Patrick Ziegler: Dataset research, Data organization and preprocessing
+\end{itemize}
+
+\section{Dataset}
+
+\section{Evaluation and Metriks}
+By using the citation graph, we can evaluate the performance of our recommender system in an offline setting. TODO:
+elaborate further how exactly. Our evaluation method is based on the "leave-one-out" strategy
+(\cite{EkstrandResearchLists}), ... TODO describe what we will be doing.
+
+\section{Models and Comparison}
+
+\section{Training and Fine-Tuning}
+
+\newpage
+
+% TODO: replace -> is currently just AI slop
+\begin{figure}[h!]
+  \centering
+  \begin{tikzpicture}[
+    node distance=1cm and 1.5cm,
+    >=Latex,
+    >=Stealth,
+    box/.style={rectangle, rounded corners, draw, thick, align=center, inner sep=8pt},
+    process/.style={rectangle, draw, thick, align=center, inner sep=6pt, fill=gray!5},
+    model/.style={rectangle, draw, thick, align=center, inner sep=6pt, fill=blue!5},
+    dagnode/.style={circle, draw, thick, inner sep=2pt, fill=green!5},
+    every edge/.style={draw, thick, -{Latex[length=3mm,width=2mm]}}
+    ]
+
+    % Top: Dataset input
+    \node[box, fill=yellow!10] (dataset) {Raw Dataset\\(papers, metadata, citations)};
+
+    % Preprocessing steps
+    \node[process, below=of dataset] (preprocess) {Preprocessing\\(cleaning, tokenization,\\text extraction,\dots)};
+
+    % Processed data: paper contents + DAG
+    \node[box, below=of preprocess] (processed) {Processed Data:\\
+      - Paper contents (text representations)\\
+      - Citation graph (DAG)
+    };
+
+    % Small DAG sketch to the right of processed
+    \node[dagnode, right=2.8cm of processed] (g1) {};
+    \node[dagnode, above right=0.4cm and 0.6cm of g1] (g2) {};
+    \node[dagnode, below right=0.4cm and 0.6cm of g1] (g3) {};
+    \node[dagnode, right=0.9cm of g2] (g4) {};
+    \draw[-{Latex[length=2mm]}] (g1) -- (g2);
+    \draw[-{Latex[length=2mm]}] (g1) -- (g3);
+    \draw[-{Latex[length=2mm]}] (g2) -- (g4);
+    \draw[-{Latex[length=2mm]}] (g3) -- (g4);
+
+    % Label for DAG
+    \node[align=left, above=0.2cm of g2] (daglabel) {Citation DAG};
+
+    % Pretrained models box
+    \node[box, fill=blue!5, below left=2.5cm and -1.0cm of processed] (models) {Pretrained Models:\\[2pt]
+      BERT\\
+      SciBERT\\
+      RoBERTa\\
+      \dots
+    };
+
+    % Training process box
+    \node[process, below right=2.5cm and -1.0cm of processed] (training) {Training / Fine-tuning Process};
+
+    % Bidirectional arrows between models and training
+    \draw[<->, thick] (models.east) -- node[above]{fine-tuning} (training.west);
+
+    % Arrows from processed data to both models and training (features / supervision)
+    \draw (processed.south west) .. controls +(-1.5,-1.0) and +(0,1.0) .. (models.north);
+    \draw (processed.south east) .. controls +(1.5,-1.0) and +(0,1.0) .. (training.north);
+
+    % Fine-tuned model
+    \node[model, below=2.2cm of training] (finetuned) {Fine-tuned Recommender Model};
+
+    \draw (training.south) -- (finetuned.north);
+
+    % Evaluation block
+    \node[box, fill=red!5, below=2.5cm of processed] (evaluation) {Evaluation};
+
+    % Position evaluation roughly below fine-tuned and processed
+    \node[box, fill=red!5, below=2.0cm of finetuned, text width=8cm] (evaldetail) {Evaluation:\\[3pt]
+      - Choose a (fine-tuned) model\\
+      - Use paper sub-parts (e.g., abstract) as queries\\
+      - Ground truth from citation DAG\\
+      - Compute metrics (e.g., nDCG, MAP, Recall@k,\dots)
+    };
+
+    % Arrows into evaluation
+    \draw (finetuned.south) -- (evaldetail.north);
+    \draw[dashed] (processed.east) .. controls +(3.2,-0.5) and +(3.2,0.8) .. (evaldetail.east);
+    \node[below right=0.1cm and -1.4cm of processed] {\scriptsize (DAG-based ground truth)};
+
+    % Arrow chain top-down
+    \draw (dataset) -- (preprocess);
+    \draw (preprocess) -- (processed);
+
+    % Optional: label for query / ground truth split
+    \node[align=left, left=2.5cm of evaldetail] (qlabel) {Queries:\\sub-parts of paper\\(e.g. abstract)};
+    \draw[->] (qlabel.east) -- ++(0.9,0);
+
+  \end{tikzpicture}
+  \caption{Just a placeholder \color{red}TODO REPLACE}
+  \label{fig:system-overview-dag}
+\end{figure}
+
+\newpage
+
+\printbibliography[title=References]
 
 \end{document}
