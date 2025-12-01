@@ -3,10 +3,10 @@
 \usepackage{hyperref}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit}
-\usepackage[backend=biber,style=numeric,sortcites,sorting=nty,backref,natbib,hyperref]{biblatex}
+\usepackage[backend=biber,style=numeric,sorting=none,sortcites,backref,natbib,hyperref]{biblatex}
 \addbibresource{references.bib}
 
-\title{Design Document - Recommender System for Research Papers \\ \small Group 17}
+\title{Design Document - Recommender System for Research Papers \newline\newline \small Group 17}
 \author{
   Matthias Bergmann (matr. nr.) \and
     Maximilian Herczegh (matr. nr.) \and
@@ -23,9 +23,10 @@
   With the evergrowing amount of research papers being published, it becomes increasingly difficult for researchers to
   stay updated in their respective fields and discover relevant literature. Especially finding the original sources and
   base materials for a specific topic can be a tedious task. To address this challenge, we propose the development and
-  evaluation of a recommender system specifically designed to suggest relevant research papers based on user queries or
-  existing papers. Due to the difficulty of user studies and live evaluations, we will focus on offline evaluation
-  methods and how to use the citation graph for fine tuning and evaluation. Furhtermore, we will compare different models
+  evaluation of a recommender system specifically designed to suggest relevant research papers based on short user
+  queries. This differs from most existing research paper recommender systems, which expect an existing paper as the
+  query. Due to the difficulty of user studies and live evaluations, we will focus on offline evaluation methods and how
+  to use the citation graph for fine tuning and evaluation. Furthermore, we will compare different models
   and fine tuning methods to minimize the training effort in relation to achieved performance.
 \end{abstract}
 
@@ -38,14 +39,20 @@
 \end{itemize}
 
 \section{Dataset}
+We will utilize the Semantic Scholar dataset collection accessible via thier API \cite{lo-wang-2020-s2orc}. This
+includes more than 225 million papers, 100 million authors including paper-authorship data and a citation graph with
+around 2.8 billion edges. Additionally, there exist pretrained embeddings we can compare to aswell as "tl;dr"
+representations of the papers, usable as queries in during the recommender system evaluation. Furthermore, the API
+provides a recommender system based on the graph and embedding information. However, this existing system is only built
+to recommend new papers based on existing papers. We will utilize this information and evaluate the performance of
+recommending papers soley based on short paragraphs and textual description as queries.
 
+  {\color{red}TODO rethink below based on given recommender}
 We will preprocess our data by generating the citation graph from the dataset and computing a similarity measure between each node in the graph. For this purpose we will experiment with different metrics or a combination, specifically bibliographic coupling, co-citation and personalized page rank.
 Training samples will be generated from the dataset as follows. The input for our model will consist of two parts. First, a query which will be a small section of a paper from the datset. Second a different full paper from the dataset. The target variable will be the computed similarity score of the two papers.
 
 \section{Evaluation and Metrics}
-By using the citation graph, we can evaluate the performance of our recommender system in an offline setting. TODO:
-elaborate further how exactly. Our evaluation method is based on the "leave-one-out" strategy
-(\cite{EkstrandResearchLists}), ... TODO describe what we will be doing.
+TODO explain how to use existing recommender
 
 \section{Models and Comparison}
 
@@ -140,7 +147,7 @@ elaborate further how exactly. Our evaluation method is based on the "leave-one-
     \draw[->] (qlabel.east) -- ++(0.9,0);
 
   \end{tikzpicture}
-  \caption{Just a placeholder \color{red}TODO REPLACE}
+  \caption{Just a placeholder AI slop \color{red}TODO REPLACE}
   \label{fig:system-overview-dag}
 \end{figure}
 
