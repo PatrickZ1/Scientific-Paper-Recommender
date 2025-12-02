@@ -27,7 +27,7 @@
   With the ever growing amount of research papers being published, it becomes increasingly difficult for researchers to
   stay updated in their respective fields and discover relevant literature. To address this challenge, we propose the
   development and evaluation of a recommender system specifically designed to suggest relevant research papers based on
-  abstract-style textual user queries. In particular, we aim to evaluate the performance of various pre.trained embedding
+  abstract-style textual user queries. In particular, we aim to evaluate the performance of various pre-trained embedding
   models, fine-tuned variations and different retrieval techniques (such as the use of a separate model to re-rank
   approximate k-nearest results) in the context of recommending research papers. The recommender system will be evaluated
   using a large-scale dataset of research papers with query-positive-negative triplets derived from citation
@@ -36,9 +36,9 @@
     benchmarks?}
 \end{abstract}
 
-\begin{figure}[h!]
+\begin{figure}[H]
   \makebox[\textwidth][c]{
-    \includegraphics[width=\paperwidth]{AIR_schematic.pdf}
+    \includegraphics[width=0.9\paperwidth]{AIR_schematic.pdf}
   }
   \caption{System Architecture Overview}
   \label{fig:system-overview}
@@ -49,11 +49,11 @@
   \item Matthias Bergmann: Evaluation and Metrics
   \item Maximilian Herczegh: Recommender system design and vector database integration
   \item Alexander Scheucher: Model research, training and fine-tuning
-  \item Patrick Ziegler: Dataset research, dsata organization and preprocessing
+  \item Patrick Ziegler: Dataset research, data organization and preprocessing
 \end{itemize}
 
 \section{Dataset}
-As citation relationships between research papers are a strong indicator of relevance, we will utilize the SciDocs Site
+As citation relationships between research papers are a strong indicator of relevance, we will utilize the SciDocs Cite
 Prediction dataset~\cite{cohan-etal-2020-specter}, which contains query-positive-negative triplets derived from
 citation relationships. This dataset contains approximately 6.3 million triplets of research papers from various
 scientific domains, with each document consisting of a title and abstract. The dataset is split into a training set
@@ -63,24 +63,27 @@ recommender system on the smaller RELISH dataset~\cite{brown2019large}, which co
 roughly 60 ranked relevant documents per query in the field of biomedical literature and annotated by experts. As these
 datasets already contain extracted titles and abstracts, no further preprocessing is necessary. Depending on the
 available computational resources and model complexity, we consider using a smaller subset of the SciDocs dataset for
-fine-tuning.
+fine-tuning. The training set for fine-tuning will be split further into a training and validation set to monitor for
+overfitting during training and to perform hyperparameter tuning. For the evaluation and the test splits we will make
+sure that the set of contained documents (the set of queries and the set of positive and negative samples) are disjoint
+from the training set to avoid data leakage.
 
 
 \section{Evaluation and Metrics}
-All models will be evaluated on the validation set of the SciDocs Site Prediction dataset and the RELISH dataset using
+All models will be evaluated on the validation set of the SciDocs Cite Prediction dataset and the RELISH dataset using
 standard information retrieval metrics such as Mean Reciprocal Rank (MRR), Normalized Discounted Cumulative Gain (NDCG)
 and Precision@K. To ensure no data leakage occurs, we will make sure that no documents from the training set appear in
 the validation sets. Furthermore, we will use the pre-split validation set of the SciDocs dataset to ensure that the
 pre-trained models have not seen any of the validation documents during their training.
 
-\section{Models and Comparison}
+\section{Models, Training and Comparison}
 Our recommender system will be based on using a transformer-based embedding model to encode the title and abstract of
 all documents. The same model will be used to encode the user query and all embeddings will be stored in a vector
 database such as FAISS~\cite{johnson2019billion} to allow for efficient approximate nearest neighbor search. We will
 compare a plain k-nearest neighbor search with a re-ranking approach, where a cross encoder model is used to re-rank
 the approximate k-nearest results. Fine-tuning of the embedding models will be performed using a contrastive triplet
 loss on the training set of the SciDocs dataset. Whereas the re-ranking model will be fine-tuned on pairs of relevant
-and non-relevant documents for a given query using binary cross entropy loss. Given two differen documents (title +
+and non-relevant documents for a given query using binary cross entropy loss. Given two different documents (title +
 abstract) inputs, the cross encoder model will return a value $\in [0, 1]$ indicating how relevant one document is to
 the other. The following combinations of embedding models
 and re-ranking models from HuggingFace will be evaluated (subject to change during implementation), as shown in Table
