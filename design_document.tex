@@ -79,8 +79,10 @@ all documents. The same model will be used to encode the user query and all embe
 database such as FAISS~\cite{johnson2019billion} to allow for efficient approximate nearest neighbor search. We will
 compare a plain k-nearest neighbor search with a re-ranking approach, where a cross encoder model is used to re-rank
 the approximate k-nearest results. Fine-tuning of the embedding models will be performed using a contrastive triplet
-loss on the training set of the SciDocs dataset. Whereas the re-ranking model will be trained on pairs of relevant and
-non-relevant documents for a given query using the pairwise hinge loss. The following combinations of embedding models
+loss on the training set of the SciDocs dataset. Whereas the re-ranking model will be fine-tuned on pairs of relevant
+and non-relevant documents for a given query using binary cross entropy loss. Given two differen documents (title +
+abstract) inputs, the cross encoder model will return a value $\in [0, 1]$ indicating how relevant one document is to
+the other. The following combinations of embedding models
 and re-ranking models from HuggingFace will be evaluated (subject to change during implementation), as shown in Table
 1.
 

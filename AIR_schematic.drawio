@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36" version="29.2.2">
   <diagram name="Seite-1" id="c23rqilBbThCt-cIpjyA">
-    <mxGraphModel dx="2464" dy="621" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+    <mxGraphModel dx="3047" dy="935" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -164,7 +164,7 @@
         <mxCell id="W4W4Sn71rVRso3dT6rNc-55" connectable="0" parent="1" style="group" value="" vertex="1">
           <mxGeometry height="95" width="250" x="-490" y="550" as="geometry" />
         </mxCell>
-        <mxCell id="W4W4Sn71rVRso3dT6rNc-40" parent="W4W4Sn71rVRso3dT6rNc-55" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;" value="Mean Reciprocal Rank (MMR)&lt;br&gt;nDCG @ k&lt;br&gt;Precision @ k&lt;br&gt;mAP @ k&lt;br&gt;..." vertex="1">
+        <mxCell id="W4W4Sn71rVRso3dT6rNc-40" parent="W4W4Sn71rVRso3dT6rNc-55" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;" value="Mean Reciprocal Rank (MRR)&lt;br&gt;nDCG @ k&lt;br&gt;Precision @ k&lt;br&gt;mAP @ k&lt;br&gt;..." vertex="1">
           <mxGeometry height="83" width="220" as="geometry" />
         </mxCell>
         <mxCell id="W4W4Sn71rVRso3dT6rNc-49" parent="W4W4Sn71rVRso3dT6rNc-55" style="ellipse;whiteSpace=wrap;html=1;" value="&lt;b&gt;Evaluation&lt;/b&gt;" vertex="1">
@@ -184,7 +184,7 @@
         <mxCell id="W4W4Sn71rVRso3dT6rNc-71" parent="W4W4Sn71rVRso3dT6rNc-57" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;" value="Cross-Encoder&lt;br&gt;Re-Ranking Model" vertex="1">
           <mxGeometry height="40" width="120" x="11" y="135" as="geometry" />
         </mxCell>
-        <mxCell id="W4W4Sn71rVRso3dT6rNc-72" parent="W4W4Sn71rVRso3dT6rNc-57" style="ellipse;whiteSpace=wrap;html=1;" value="Pairwise&lt;br&gt;Hinge Loss" vertex="1">
+        <mxCell id="W4W4Sn71rVRso3dT6rNc-72" parent="W4W4Sn71rVRso3dT6rNc-57" style="ellipse;whiteSpace=wrap;html=1;" value="Binary&lt;br&gt;Cross Entropy&lt;br&gt;Loss" vertex="1">
           <mxGeometry height="50" width="90" x="153" y="130" as="geometry" />
         </mxCell>
         <mxCell id="W4W4Sn71rVRso3dT6rNc-79" edge="1" parent="W4W4Sn71rVRso3dT6rNc-57" source="W4W4Sn71rVRso3dT6rNc-71" style="endArrow=classic;startArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="W4W4Sn71rVRso3dT6rNc-72" value="">
