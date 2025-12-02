@@ -1,16 +1,20 @@
 \documentclass{article}
+\usepackage[a4paper, margin=1in]{geometry}
 \usepackage[utf8]{inputenc}
 \usepackage{hyperref}
 \usepackage{tikz}
+\usepackage{float}
+\usepackage{pifont}
+\newcommand{\cmark}{\ding{51}}%
+\newcommand{\xmark}{\ding{55}}%
 \usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit}
-\usepackage[backend=biber,style=numeric,sorting=none,sortcites,backref,natbib,hyperref]{biblatex}
+\usepackage[backend=biber,style=numeric,sorting=none,sortcites,backref,hyperref]{biblatex}
 \addbibresource{references.bib}
+
 
 \title{Design Document - Recommender System for Research Papers \newline\newline \small Group 17}
 \author{
-  Matthias Bergmann (matr. nr.) \and
-    Maximilian Herczegh (matr. nr.) \and
-    Alexander Scheucher (matr. nr.) \and
+  Matthias Bergmann (12219019) \and Maximilian Herczegh (12306066) \and Alexander Scheucher (12113826) \and
     Patrick Ziegler (12303709)
 }
 \date{\today}
@@ -20,138 +24,103 @@
 \maketitle
 
 \begin{abstract}
-  With the evergrowing amount of research papers being published, it becomes increasingly difficult for researchers to
-  stay updated in their respective fields and discover relevant literature. Especially finding the original sources and
-  base materials for a specific topic can be a tedious task. To address this challenge, we propose the development and
-  evaluation of a recommender system specifically designed to suggest relevant research papers based on short user
-  queries. This differs from most existing research paper recommender systems, which expect an existing paper as the
-  query. Due to the difficulty of user studies and live evaluations, we will focus on offline evaluation methods and how
-  to use the citation graph for fine tuning and evaluation. Furthermore, we will compare different models
-  and fine tuning methods to minimize the training effort in relation to achieved performance.
+  With the ever growing amount of research papers being published, it becomes increasingly difficult for researchers to
+  stay updated in their respective fields and discover relevant literature. To address this challenge, we propose the
+  development and evaluation of a recommender system specifically designed to suggest relevant research papers based on
+  abstract-style textual user queries. In particular, we aim to evaluate the performance of various pre.trained embedding
+  models, fine-tuned variations and different retrieval techniques (such as the use of a separate model to re-rank
+  approximate k-nearest results) in the context of recommending research papers. The recommender system will be evaluated
+  using a large-scale dataset of research papers with query-positive-negative triplets derived from citation
+  relationships.\\ Our overarching research question is: \emph{How well do different combinations of transformer-based
+    embedding models and re-ranking models perform for research paper recommendation when evaluated on citation-based
+    benchmarks?}
 \end{abstract}
+
+\begin{figure}[h!]
+  \makebox[\textwidth][c]{
+    \includegraphics[width=\paperwidth]{AIR_schematic.pdf}
+  }
+  \caption{System Architecture Overview}
+  \label{fig:system-overview}
+\end{figure}
 
 \section{Members and Roles}
 \begin{itemize}
-  \item Matthias Bergmann: ---
-  \item Maximilian Herczegh: ---
-  \item Alexander Scheucher: ---
-  \item Patrick Ziegler: Dataset research, Data organization and preprocessing
+  \item Matthias Bergmann: Evaluation and Metrics
+  \item Maximilian Herczegh: Recommender system design and vector database integration
+  \item Alexander Scheucher: Model research, training and fine-tuning
+  \item Patrick Ziegler: Dataset research, dsata organization and preprocessing
 \end{itemize}
 
 \section{Dataset}
-We will utilize the Semantic Scholar dataset collection accessible via thier API \cite{lo-wang-2020-s2orc}. This
-includes more than 225 million papers, 100 million authors including paper-authorship data and a citation graph with
-around 2.8 billion edges. Additionally, there exist pretrained embeddings we can compare to aswell as "tl;dr"
-representations of the papers, usable as queries in during the recommender system evaluation. Furthermore, the API
-provides a recommender system based on the graph and embedding information. However, this existing system is only built
-to recommend new papers based on existing papers. We will utilize this information and evaluate the performance of
-recommending papers soley based on short paragraphs and textual description as queries.
+As citation relationships between research papers are a strong indicator of relevance, we will utilize the SciDocs Site
+Prediction dataset~\cite{cohan-etal-2020-specter}, which contains query-positive-negative triplets derived from
+citation relationships. This dataset contains approximately 6.3 million triplets of research papers from various
+scientific domains, with each document consisting of a title and abstract. The dataset is split into a training set
+with 6.2 million triplets and a validation set with 176 thousand triplets and is publicly available via
+\href{https://huggingface.co/datasets/allenai/scirepeval/}{Hugging Face}. Furthermore, we will also evaluate our
+recommender system on the smaller RELISH dataset~\cite{brown2019large}, which contains around 3 thousand queries and
+roughly 60 ranked relevant documents per query in the field of biomedical literature and annotated by experts. As these
+datasets already contain extracted titles and abstracts, no further preprocessing is necessary. Depending on the
+available computational resources and model complexity, we consider using a smaller subset of the SciDocs dataset for
+fine-tuning.
 
-  {\color{red}TODO rethink below based on given recommender}
-We will preprocess our data by generating the citation graph from the dataset and computing a similarity measure between each node in the graph. For this purpose we will experiment with different metrics or a combination, specifically bibliographic coupling, co-citation and personalized page rank.
-Training samples will be generated from the dataset as follows. The input for our model will consist of two parts. First, a query which will be a small section of a paper from the datset. Second a different full paper from the dataset. The target variable will be the computed similarity score of the two papers.
 
 \section{Evaluation and Metrics}
-TODO explain how to use existing recommender
+All models will be evaluated on the validation set of the SciDocs Site Prediction dataset and the RELISH dataset using
+standard information retrieval metrics such as Mean Reciprocal Rank (MRR), Normalized Discounted Cumulative Gain (NDCG)
+and Precision@K. To ensure no data leakage occurs, we will make sure that no documents from the training set appear in
+the validation sets. Furthermore, we will use the pre-split validation set of the SciDocs dataset to ensure that the
+pre-trained models have not seen any of the validation documents during their training.
 
 \section{Models and Comparison}
+Our recommender system will be based on using a transformer-based embedding model to encode the title and abstract of
+all documents. The same model will be used to encode the user query and all embeddings will be stored in a vector
+database such as FAISS~\cite{johnson2019billion} to allow for efficient approximate nearest neighbor search. We will
+compare a plain k-nearest neighbor search with a re-ranking approach, where a cross encoder model is used to re-rank
+the approximate k-nearest results. Fine-tuning of the embedding models will be performed using a contrastive triplet
+loss on the training set of the SciDocs dataset. Whereas the re-ranking model will be trained on pairs of relevant and
+non-relevant documents for a given query using the pairwise hinge loss. The following combinations of embedding models
+and re-ranking models from HuggingFace will be evaluated (subject to change during implementation), as shown in Table
+1.
 
-\section{Training and Fine-Tuning}
-
-\newpage
-
-% TODO: replace -> is currently just AI slop
-\begin{figure}[h!]
+\begin{table}[H]
   \centering
-  \begin{tikzpicture}[
-    node distance=1cm and 1.5cm,
-    >=Latex,
-    >=Stealth,
-    box/.style={rectangle, rounded corners, draw, thick, align=center, inner sep=8pt},
-    process/.style={rectangle, draw, thick, align=center, inner sep=6pt, fill=gray!5},
-    model/.style={rectangle, draw, thick, align=center, inner sep=6pt, fill=blue!5},
-    dagnode/.style={circle, draw, thick, inner sep=2pt, fill=green!5},
-    every edge/.style={draw, thick, -{Latex[length=3mm,width=2mm]}}
-    ]
+  \label{tab:model-combinations}
+  \begin{tabular}{|l|c||l|c|}
+    \hline
+    \multicolumn{2}{|c||}{\textbf{Embedding Model}} & \multicolumn{2}{c|}{\textbf{Re-Ranking}}                                                               \\
+    \hline
+    Pre-trained model                               & Fine-tuned?                              & Pre-trained model                             & Fine-tuned? \\
+    \hline
+    SPECTER2~\cite{cohan-etal-2020-specter}         & \xmark                                   & -                                             & -           \\
+    \hline
+    SPECTER2                                        & \xmark                                   & TinyBERT-L2-v2~\cite{jiao-etal-2020-tinybert} & \xmark      \\
+    \hline
+    SPECTER2                                        & \xmark                                   & TinyBERT-L2-v2                                & \cmark      \\
+    \hline
+    RoBERTa~\cite{liu2019roberta}                   & \xmark                                   & -                                             & -           \\
+    \hline
+    RoBERTa                                         & \xmark                                   & TinyBERT-L2-v2                                & \xmark      \\
+    \hline
+    RoBERTa                                         & \xmark                                   & TinyBERT-L2-v2                                & \cmark      \\
+    \hline
+    RoBERTa                                         & \cmark                                   & -                                             & -           \\
+    \hline
+    RoBERTa                                         & \cmark                                   & TinyBERT-L2-v2                                & \xmark      \\
+    \hline
+    RoBERTa                                         & \cmark                                   & TinyBERT-L2-v2                                & \cmark      \\
+    \hline
+    SciBERT~\cite{beltagy-etal-2019-scibert}        & \xmark                                   & -                                             & -           \\
+    \hline
+    SciBERT                                         & \xmark                                   & TinyBERT-L2-v2                                & \xmark      \\
+    \hline
+    SciBERT                                         & \xmark                                   & TinyBERT-L2-v2                                & \cmark      \\
+    \hline
+  \end{tabular}
+  \caption{Model Combinations for Evaluation}
+  \end{table}
 
-    % Top: Dataset input
-    \node[box, fill=yellow!10] (dataset) {Raw Dataset\\(papers, metadata, citations)};
-
-    % Preprocessing steps
-    \node[process, below=of dataset] (preprocess) {Preprocessing\\(cleaning, tokenization,\\text extraction,\dots)};
-
-    % Processed data: paper contents + DAG
-    \node[box, below=of preprocess] (processed) {Processed Data:\\
-      - Paper contents (text representations)\\
-      - Citation graph (DAG)
-    };
-
-    % Small DAG sketch to the right of processed
-    \node[dagnode, right=2.8cm of processed] (g1) {};
-    \node[dagnode, above right=0.4cm and 0.6cm of g1] (g2) {};
-    \node[dagnode, below right=0.4cm and 0.6cm of g1] (g3) {};
-    \node[dagnode, right=0.9cm of g2] (g4) {};
-    \draw[-{Latex[length=2mm]}] (g1) -- (g2);
-    \draw[-{Latex[length=2mm]}] (g1) -- (g3);
-    \draw[-{Latex[length=2mm]}] (g2) -- (g4);
-    \draw[-{Latex[length=2mm]}] (g3) -- (g4);
-
-    % Label for DAG
-    \node[align=left, above=0.2cm of g2] (daglabel) {Citation DAG};
-
-    % Pretrained models box
-    \node[box, fill=blue!5, below left=2.5cm and -1.0cm of processed] (models) {Pretrained Models:\\[2pt]
-      BERT\\
-      SciBERT\\
-      RoBERTa\\
-      \dots
-    };
-
-    % Training process box
-    \node[process, below right=2.5cm and -1.0cm of processed] (training) {Training / Fine-tuning Process};
-
-    % Bidirectional arrows between models and training
-    \draw[<->, thick] (models.east) -- node[above]{fine-tuning} (training.west);
-
-    % Arrows from processed data to both models and training (features / supervision)
-    \draw (processed.south west) .. controls +(-1.5,-1.0) and +(0,1.0) .. (models.north);
-    \draw (processed.south east) .. controls +(1.5,-1.0) and +(0,1.0) .. (training.north);
-
-    % Fine-tuned model
-    \node[model, below=2.2cm of training] (finetuned) {Fine-tuned Recommender Model};
-
-    \draw (training.south) -- (finetuned.north);
-
-    % Evaluation block
-    \node[box, fill=red!5, below=2.5cm of processed] (evaluation) {Evaluation};
-
-    % Position evaluation roughly below fine-tuned and processed
-    \node[box, fill=red!5, below=2.0cm of finetuned, text width=8cm] (evaldetail) {Evaluation:\\[3pt]
-      - Choose a (fine-tuned) model\\
-      - Use paper sub-parts (e.g., abstract) as queries\\
-      - Ground truth from citation DAG\\
-      - Compute metrics (e.g., nDCG, MAP, Recall@k,\dots)
-    };
-
-    % Arrows into evaluation
-    \draw (finetuned.south) -- (evaldetail.north);
-    \draw[dashed] (processed.east) .. controls +(3.2,-0.5) and +(3.2,0.8) .. (evaldetail.east);
-    \node[below right=0.1cm and -1.4cm of processed] {\scriptsize (DAG-based ground truth)};
-
-    % Arrow chain top-down
-    \draw (dataset) -- (preprocess);
-    \draw (preprocess) -- (processed);
-
-    % Optional: label for query / ground truth split
-    \node[align=left, left=2.5cm of evaldetail] (qlabel) {Queries:\\sub-parts of paper\\(e.g. abstract)};
-    \draw[->] (qlabel.east) -- ++(0.9,0);
-
-  \end{tikzpicture}
-  \caption{Just a placeholder AI slop \color{red}TODO REPLACE}
-  \label{fig:system-overview-dag}
-\end{figure}
-
-\newpage
 
 \printbibliography[title=References]
 

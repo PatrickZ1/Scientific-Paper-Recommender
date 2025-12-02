@@ -1,30 +1,117 @@
-@inproceedings{EkstrandResearchLists,
-  author    = {Ekstrand, Michael D. and Kannan, Praveen and Stemper, James A. and Butler, John T. and Konstan, Joseph A. and Riedl, John T.},
-  title     = {Automatically building research reading lists},
-  year      = {2010},
-  isbn      = {9781605589060},
-  publisher = {Association for Computing Machinery},
-  address   = {New York, NY, USA},
-  url       = {https://doi.org/10.1145/1864708.1864740},
-  doi       = {10.1145/1864708.1864740},
-  abstract  = {All new researchers face the daunting task of familiarizing themselves with the existing body of research literature in their respective fields. Recommender algorithms could aid in preparing these lists, but most current algorithms do not understand how to rate the importance of a paper within the literature, which might limit their effectiveness in this domain. We explore several methods for augmenting existing collaborative and content-based filtering algorithms with measures of the influence of a paper within the web of citations. We measure influence using well-known algorithms, such as HITS and PageRank, for measuring a node's importance in a graph. Among these augmentation methods is a novel method for using importance scores to influence collaborative filtering. We present a task-centered evaluation, including both an offline analysis and a user study, of the performance of the algorithms. Results from these studies indicate that collaborative filtering outperforms content-based approaches for generating introductory reading lists.},
-  booktitle = {Proceedings of the Fourth ACM Conference on Recommender Systems},
-  pages     = {159–166},
-  numpages  = {8},
-  keywords  = {citation web, collaborative filtering, digital libraries, recommender systems, user study},
-  location  = {Barcelona, Spain},
-  series    = {RecSys '10}
+@inproceedings{Singh2022SciRepEvalAM,
+  title={SciRepEval: A Multi-Format Benchmark for Scientific Document Representations},
+  author={Amanpreet Singh and Mike D'Arcy and Arman Cohan and Doug Downey and Sergey Feldman},
+  booktitle={Conference on Empirical Methods in Natural Language Processing},
+  year={2022},
+  url={https://api.semanticscholar.org/CorpusID:254018137}
 }
 
-@inproceedings{lo-wang-2020-s2orc,
-  title     = {{S}2{ORC}: The Semantic Scholar Open Research Corpus},
-  author    = {Lo, Kyle  and Wang, Lucy Lu  and Neumann, Mark  and Kinney, Rodney  and Weld, Daniel},
-  booktitle = {Proceedings of the 58th Annual Meeting of the Association for Computational Linguistics},
-  month     = jul,
-  year      = {2020},
-  address   = {Online},
-  publisher = {Association for Computational Linguistics},
-  url       = {https://www.aclweb.org/anthology/2020.acl-main.447},
-  doi       = {10.18653/v1/2020.acl-main.447},
-  pages     = {4969--4983}
+@inproceedings{cohan-etal-2020-specter,
+    title = "{SPECTER}: Document-level Representation Learning using Citation-informed Transformers",
+    author = "Cohan, Arman  and
+      Feldman, Sergey  and
+      Beltagy, Iz  and
+      Downey, Doug  and
+      Weld, Daniel",
+    editor = "Jurafsky, Dan  and
+      Chai, Joyce  and
+      Schluter, Natalie  and
+      Tetreault, Joel",
+    booktitle = "Proceedings of the 58th Annual Meeting of the Association for Computational Linguistics",
+    month = jul,
+    year = "2020",
+    address = "Online",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2020.acl-main.207/",
+    doi = "10.18653/v1/2020.acl-main.207",
+    pages = "2270--2282",
+    abstract = "Representation learning is a critical ingredient for natural language processing systems. Recent Transformer language models like BERT learn powerful textual representations, but these models are targeted towards token- and sentence-level training objectives and do not leverage information on inter-document relatedness, which limits their document-level representation power. For applications on scientific documents, such as classification and recommendation, accurate embeddings of documents are a necessity. We propose SPECTER, a new method to generate document-level embedding of scientific papers based on pretraining a Transformer language model on a powerful signal of document-level relatedness: the citation graph. Unlike existing pretrained language models, Specter can be easily applied to downstream applications without task-specific fine-tuning. Additionally, to encourage further research on document-level models, we introduce SciDocs, a new evaluation benchmark consisting of seven document-level tasks ranging from citation prediction, to document classification and recommendation. We show that Specter outperforms a variety of competitive baselines on the benchmark."
+}
+
+@article{brown2019large,
+  title={Large expert-curated database for benchmarking document similarity detection in biomedical literature search},
+  author={Brown, Peter and Zhou, Yaoqi},
+  journal={Database},
+  volume={2019},
+  pages={baz085},
+  year={2019},
+  publisher={Oxford University Press}
+}
+
+@article{johnson2019billion,
+  title={Billion-scale similarity search with {GPUs}},
+  author={Johnson, Jeff and Douze, Matthijs and J{\'e}gou, Herv{\'e}},
+  journal={IEEE Transactions on Big Data},
+  volume={7},
+  number={3},
+  pages={535--547},
+  year={2019},
+  publisher={IEEE}
+}
+
+@inproceedings{jiao-etal-2020-tinybert,
+    title = "{T}iny{BERT}: Distilling {BERT} for Natural Language Understanding",
+    author = "Jiao, Xiaoqi  and
+      Yin, Yichun  and
+      Shang, Lifeng  and
+      Jiang, Xin  and
+      Chen, Xiao  and
+      Li, Linlin  and
+      Wang, Fang  and
+      Liu, Qun",
+    editor = "Cohn, Trevor  and
+      He, Yulan  and
+      Liu, Yang",
+    booktitle = "Findings of the Association for Computational Linguistics: EMNLP 2020",
+    month = nov,
+    year = "2020",
+    address = "Online",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2020.findings-emnlp.372/",
+    doi = "10.18653/v1/2020.findings-emnlp.372",
+    pages = "4163--4174",
+    abstract = "Language model pre-training, such as BERT, has significantly improved the performances of many natural language processing tasks. However, pre-trained language models are usually computationally expensive, so it is difficult to efficiently execute them on resource-restricted devices. To accelerate inference and reduce model size while maintaining accuracy, we first propose a novel Transformer distillation method that is specially designed for knowledge distillation (KD) of the Transformer-based models. By leveraging this new KD method, the plenty of knowledge encoded in a large ``teacher'' BERT can be effectively transferred to a small ``student'' TinyBERT. Then, we introduce a new two-stage learning framework for TinyBERT, which performs Transformer distillation at both the pre-training and task-specific learning stages. This framework ensures that TinyBERT can capture the general-domain as well as the task-specific knowledge in BERT. TinyBERT4 with 4 layers is empirically effective and achieves more than 96.8{\%} the performance of its teacher BERT-Base on GLUE benchmark, while being 7.5x smaller and 9.4x faster on inference. TinyBERT4 is also significantly better than 4-layer state-of-the-art baselines on BERT distillation, with only {\textasciitilde}28{\%} parameters and {\textasciitilde}31{\%} inference time of them. Moreover, TinyBERT6 with 6 layers performs on-par with its teacher BERT-Base."
+}
+
+@article{liu2019roberta,
+  author    = {Yinhan Liu and
+               Myle Ott and
+               Naman Goyal and
+               Jingfei Du and
+               Mandar Joshi and
+               Danqi Chen and
+               Omer Levy and
+               Mike Lewis and
+               Luke Zettlemoyer and
+               Veselin Stoyanov},
+  title     = {RoBERTa: {A} Robustly Optimized {BERT} Pretraining Approach},
+  journal   = {CoRR},
+  volume    = {abs/1907.11692},
+  year      = {2019},
+  url       = {http://arxiv.org/abs/1907.11692},
+  archivePrefix = {arXiv},
+  eprint    = {1907.11692},
+  timestamp = {Thu, 01 Aug 2019 08:59:33 +0200},
+  biburl    = {https://dblp.org/rec/journals/corr/abs-1907-11692.bib},
+  bibsource = {dblp computer science bibliography, https://dblp.org}
+}
+
+@inproceedings{beltagy-etal-2019-scibert,
+    title = "{S}ci{BERT}: A Pretrained Language Model for Scientific Text",
+    author = "Beltagy, Iz  and
+      Lo, Kyle  and
+      Cohan, Arman",
+    editor = "Inui, Kentaro  and
+      Jiang, Jing  and
+      Ng, Vincent  and
+      Wan, Xiaojun",
+    booktitle = "Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing and the 9th International Joint Conference on Natural Language Processing (EMNLP-IJCNLP)",
+    month = nov,
+    year = "2019",
+    address = "Hong Kong, China",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/D19-1371/",
+    doi = "10.18653/v1/D19-1371",
+    pages = "3615--3620",
+    abstract = "Obtaining large-scale annotated data for NLP tasks in the scientific domain is challenging and expensive. We release SciBERT, a pretrained language model based on BERT (Devlin et. al., 2018) to address the lack of high-quality, large-scale labeled scientific data. SciBERT leverages unsupervised pretraining on a large multi-domain corpus of scientific publications to improve performance on downstream scientific NLP tasks. We evaluate on a suite of tasks including sequence tagging, sentence classification and dependency parsing, with datasets from a variety of scientific domains. We demonstrate statistically significant improvements over BERT and achieve new state-of-the-art results on several of these tasks. The code and pretrained models are available at \url{https://github.com/allenai/scibert/}."
 }
