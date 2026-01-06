@@ -68,7 +68,6 @@ overfitting during training and to perform hyperparameter tuning. For the evalua
 sure that the set of contained documents (the set of queries and the set of positive and negative samples) are disjoint
 from the training set to avoid data leakage.
 
-
 \section{Evaluation and Metrics}
 All models will be evaluated on the validation set of the SciDocs Cite Prediction dataset and the RELISH dataset using
 standard information retrieval metrics such as Mean Reciprocal Rank (MRR), Normalized Discounted Cumulative Gain (NDCG)
@@ -85,9 +84,8 @@ the approximate k-nearest results. Fine-tuning of the embedding models will be p
 loss on the training set of the SciDocs dataset. Whereas the re-ranking model will be fine-tuned on pairs of relevant
 and non-relevant documents for a given query using binary cross entropy loss. Given two different documents (title +
 abstract) inputs, the cross encoder model will return a value $\in [0, 1]$ indicating how relevant one document is to
-the other. The following combinations of embedding models
-and re-ranking models from HuggingFace will be evaluated (subject to change during implementation), as shown in Table
-1.
+the other. The following combinations of embedding models and re-ranking models from HuggingFace will be evaluated
+(subject to change during implementation), as shown in Table 1.
 
 \begin{table}[H]
   \centering
@@ -124,8 +122,7 @@ and re-ranking models from HuggingFace will be evaluated (subject to change duri
     \hline
   \end{tabular}
   \caption{Model Combinations for Evaluation}
-  \end{table}
-
+\end{table}
 
 \printbibliography[title=References]
 
