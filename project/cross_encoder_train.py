@@ -6,14 +6,15 @@ from sentence_transformers.cross_encoder import (
 )
 from sentence_transformers.training_args import BatchSamplers
 
-from recomm_dataset import load_scidocs_cite, scidoc_cite_to_train_triplets
+from recomm_dataset import *
 import pathlib
 
 BASE_MODEL = "cross-encoder/ms-marco-TinyBERT-L2-v2"
 MODEL_OUT_DIR = pathlib.Path("./models/cross_encoder") / "tinybert_scidocs_cite"
 CHECKPOINT_DIR = pathlib.Path("./.cross_enc_chkpt")
 
-BATCH_SIZE = 128
+# NOTE: Adjust if using a GPU with more/less memory
+BATCH_SIZE = 40
 
 MODEL_OUT_DIR.mkdir(parents=True, exist_ok=True)
 CHECKPOINT_DIR.mkdir(parents=True, exist_ok=True)
@@ -22,20 +23,26 @@ model = CrossEncoder(BASE_MODEL, device="cuda")
 
 # TODO: use more than 1/100 of the training data for quick testing
 train_dataset = scidoc_cite_to_train_triplets(
-    load_scidocs_cite()["train"].shard(500, 0)
+    filter_scidocs_cite(
+        load_scidocs_cite()["train"].shard(100, 0), load_relish()["evaluation"]
+    )
 )
 
-# TODO: Hard Example Mining or Loss Adjustment -> almost all negatives are too easy (will give a high score for paper from roughly the same field)
+# NOTE: Cached Version is slower to train and the batch size is sufficient to not benefit from reducing GPU memory usage
+loss = losses.MultipleNegativesRankingLoss(model)
+# loss = losses.CachedMultipleNegativesRankingLoss(model)
 
-loss = losses.CachedMultipleNegativesRankingLoss(
-    model, num_negatives=4, mini_batch_size=BATCH_SIZE
-)
 args = CrossEncoderTrainingArguments(
     output_dir=str(CHECKPOINT_DIR),
     batch_sampler=BatchSamplers.NO_DUPLICATES,
     num_train_epochs=1,
     resume_from_checkpoint=True,
     per_device_train_batch_size=BATCH_SIZE,
+    dataloader_num_workers=4,
+    save_steps=0.25,  # Save a checkpoint 4 times per epoch
+    report_to=["tensorboard"],
+    logging_steps=20,
+    logging_first_step=True,
 )
 
 trainer = CrossEncoderTrainer(

@@ -40,6 +40,37 @@ def load_relish():
     )
 
 
+def filter_scidocs_cite(scidocs_cite, relish):
+    """Filter SciDocs citation prediction dataset to remove any overlap with ReLiSH evaluation set."""
+    titles = set()
+
+    for item in tqdm(relish, desc="Building title set from ReLiSH"):
+        titles.add(item["query"]["title"])
+        for cand in item["candidates"]:
+            titles.add(cand["title"])
+
+    def filter_fn(x):
+        title = x["query"]["title"]
+        pos_title = x["pos"]["title"]
+        neg_title = x["neg"]["title"]
+        keep = (
+            (title not in titles)
+            and (pos_title not in titles)
+            and (neg_title not in titles)
+        )
+        return keep
+
+    count_before = len(scidocs_cite)
+    filtered_ds = scidocs_cite.filter(
+        lambda x: filter_fn(x), desc="Filtering SciDocs citation prediction dataset"
+    )
+    count_after = len(filtered_ds)
+    print(
+        f"SciDocs - Citation Prediction training set after cleaning: {count_after} examples (removed {count_before - count_after} overlapping examples)"
+    )
+    return filtered_ds
+
+
 def scidoc_cite_to_q_doc_qrel(dataset: Dataset):
     """Convert SciDocs citation prediction dataset to lists of queries, docs, and qrels usable for evaluation with ir_measures."""
     queries, docs = {}, {}
