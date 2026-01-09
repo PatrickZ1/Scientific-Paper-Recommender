@@ -11,8 +11,8 @@ from sentence_transformers.cross_encoder import CrossEncoder
 from tqdm import tqdm
 from recomm_dataset import *
 import pathlib
-
-# TODO: allow loading of finetuned models
+import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 EMBEDDING_MODELS = [
     "sentence-transformers/stsb-roberta-base-v2",
@@ -20,7 +20,12 @@ EMBEDDING_MODELS = [
     "sentence-transformers/allenai-specter",
 ]
 
-RERANKER_MODEL = "cross-encoder/ms-marco-TinyBERT-L2-v2"
+# NOTE: the currently fine-tuned reranker model is only trained on a very small subset of the data for quick testing
+#       For proper evaluation, please fine-tune on the full training set first!
+RERANKER_MODELS = [
+    "cross-encoder/ms-marco-TinyBERT-L2-v2",
+    "./models/cross_encoder/tinybert_scidocs_cite",  # fine-tuned model
+]
 
 FAISS_CACHE_DIR = pathlib.Path("./.faiss_cache")
 
@@ -56,7 +61,7 @@ def evaluate_model(
     docs: list[Document],
     qrels: list[Qrel],
     k: int = 20,
-    reranker: str | None = None,
+    rerank_name: str = None,
 ):
     """
     Evaluate a given embedding model with FAISS and ir_measures.
@@ -73,8 +78,8 @@ def evaluate_model(
     )
 
     rerank_model = None
-    if reranker is not None:
-        rerank_model = CrossEncoder(reranker, max_length=512, device="cuda")
+    if rerank_name is not None:
+        rerank_model = CrossEncoder(rerank_name, device="cuda")
 
     if (FAISS_CACHE_DIR / to_safe_filename(embedder_name, dataset_name)).exists():
         vector_store = FAISS.load_local(
@@ -86,7 +91,7 @@ def evaluate_model(
         print(f"Number of documents in index: {vector_store.index.ntotal}")
         if vector_store.index.ntotal != len(docs):
             raise ValueError(
-                "Number of documents in FAISS index does not match number of documents provided."
+                "Number of documents in FAISS index does not match number of documents provided. Please delete the cached index and try again."
             )
         else:
             print("Number of documents matches the provided documents.")
@@ -110,20 +115,28 @@ def evaluate_model(
         print("Saved FAISS index to disk.")
 
     run = []
-    for query in tqdm(queries, desc="Evaluating queries"):
+    def _eval_one_query(query):
         retrieved_docs = vector_store.similarity_search(query.page_content, k=k)
 
         if rerank_model is not None:
-            # Rerank the retrieved documents
             doc_texts = [doc.page_content for doc in retrieved_docs]
             ranks = rerank_model.rank(query.page_content, doc_texts)
             retrieved_docs = [
-                retrieved_docs[rank["corpus_id"]]
-                for rank in sorted(ranks, key=lambda x: x["score"], reverse=True)
+                retrieved_docs[r["corpus_id"]]
+                for r in sorted(ranks, key=lambda x: x["score"], reverse=True)
             ]
 
-        for rank, doc in enumerate(retrieved_docs, start=1):
-            run.append(ScoredDoc(query_id=query.id, doc_id=doc.id, score=-rank))
+        return [
+            ScoredDoc(query_id=query.id, doc_id=doc.id, score=-rank)
+            for rank, doc in enumerate(retrieved_docs, start=1)
+        ]
+
+    with ThreadPoolExecutor(max_workers=os.cpu_count()) as ex:
+        futures = [ex.submit(_eval_one_query, q) for q in queries]
+        for fut in tqdm(
+            as_completed(futures), total=len(futures), desc="Evaluating queries"
+        ):
+            run.extend(fut.result())
 
     agg = calc_aggregate(
         measures=METRICS_PER_DATASET[dataset_name], qrels=qrels, run=run
@@ -136,7 +149,6 @@ if __name__ == "__main__":
     FAISS_CACHE_DIR.mkdir(exist_ok=True)
 
     # TODO: use more than 1/100 of the validation data for quick testing
-
     eval_sets = {
         "relish": relish_to_q_doc_qrel(load_relish()["evaluation"].shard(20, 0)),
         "scidocs_cite": scidoc_cite_to_q_doc_qrel(
@@ -160,9 +172,17 @@ if __name__ == "__main__":
             evaluate_model(eval_name, model_name, queries, docs, qrels)
             print("-" * 80)
             print()
-            print(f"Evaluating model with reranker: {model_name} + {RERANKER_MODEL}")
-            evaluate_model(
-                eval_name, model_name, queries, docs, qrels, reranker=RERANKER_MODEL
-            )
-            print("-" * 80)
-            print()
+
+            for reranker_name in RERANKER_MODELS:
+                print(f"Evaluating model with reranker: {model_name} + {reranker_name}")
+                evaluate_model(
+                    eval_name,
+                    model_name,
+                    queries,
+                    docs,
+                    qrels,
+                    k=30,  # Use larger k when reranking
+                    rerank_name=reranker_name,
+                )
+                print("-" * 80)
+                print()
