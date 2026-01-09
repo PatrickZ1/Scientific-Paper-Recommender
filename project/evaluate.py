@@ -1,5 +1,4 @@
 from time import time
-
 import faiss
 from datasets import load_dataset
 from ir_measures import RR, Qrel, ScoredDoc, Success, calc_aggregate
@@ -7,6 +6,9 @@ from langchain_community.docstore.in_memory import InMemoryDocstore
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 from langchain_huggingface import HuggingFaceEmbeddings
+from sentence_transformers.cross_encoder import CrossEncoder
+from tqdm import tqdm
+from recomm_dataset import *
 
 EMBEDDING_MODELS = [
     "sentence-transformers/allenai-specter",
@@ -14,42 +16,33 @@ EMBEDDING_MODELS = [
     "pritamdeka/S-Scibert-snli-multinli-stsb",
 ]
 
+RERANKER_MODEL = "cross-encoder/ms-marco-TinyBERT-L2-v2"
 
-def load_data(split="validation"):
-    dataset = load_dataset("allenai/scirepeval", "cite_prediction_new", split=split)
-    dataset = dataset.select(range(10000))  # TODO: remove limit for full eval
-    queries, docs = {}, {}
-    qrels = []
+def evaluate_model(
+    embedder_name: str,
+    queries: list[Document],
+    docs: list[Document],
+    qrels: list[Qrel],
+    k: int = 20,
+    reranker: str | None = None,
+):
+    """
+    Evaluate a given embedding model with FAISS and ir_measures.
 
-    for item in dataset:
-        query = item["query"]
-        query_id = str(query["corpus_id"])
-        query_text = f"{query['title']} [SEP] {query['abstract']}"
-        queries[query_id] = query_text
-
-        pos = item["pos"]
-        pos_id = str(pos["corpus_id"])
-        pos_text = f"{pos['title']} [SEP] {pos['abstract']}"
-        if pos_id not in docs:
-            docs[pos_id] = pos_text
-
-        neg = item["neg"]
-        neg_id = str(neg["corpus_id"])
-        neg_text = f"{neg['title']} [SEP] {neg['abstract']}"
-        if neg_id not in docs:
-            docs[neg_id] = neg_text
-
-        qrels.append(Qrel(query_id=query_id, doc_id=pos_id, relevance=1))
-
-    queries = [Document(page_content=text, id=qid) for qid, text in queries.items()]
-    docs = [Document(page_content=text, id=did) for did, text in docs.items()]
-    return queries, docs, qrels
-
-
-def evaluate_model(model_name, queries, docs):
+    :param embedder_name: Name of the embedding model to use.
+    :param queries: All queries for evaluation.
+    :param docs: All documents for evaluation.
+    :param qrels: Relevance judgments for evaluation.
+    :param k: Number of top documents to retrieve.
+    :param reranker: Optional reranker to refine the initial retrieval results.
+    """
     embeddings = HuggingFaceEmbeddings(
-        model_name=model_name, model_kwargs={"device": "cuda"}
+        model_name=embedder_name, model_kwargs={"device": "cuda"}
     )
+
+    rerank_model = None
+    if reranker is not None:
+        rerank_model = CrossEncoder(reranker, max_length=512, device="cuda")
 
     index = faiss.IndexFlatL2(len(embeddings.embed_query("hello world")))
     vector_store = FAISS(
@@ -58,11 +51,24 @@ def evaluate_model(model_name, queries, docs):
         docstore=InMemoryDocstore({}),
         index_to_docstore_id={},
     )
+
+    embeddings.show_progress = True
     vector_store.add_documents(docs)  # approximately 320 docs per sec
+    embeddings.show_progress = False
 
     run = []
-    for query in queries:
-        retrieved_docs = vector_store.similarity_search(query.page_content, k=20)
+    for query in tqdm(queries, desc="Evaluating queries"):
+        retrieved_docs = vector_store.similarity_search(query.page_content, k=k)
+
+        if rerank_model is not None:
+            # Rerank the retrieved documents
+            doc_texts = [doc.page_content for doc in retrieved_docs]
+            ranks = rerank_model.rank(query.page_content, doc_texts)
+            retrieved_docs = [
+                retrieved_docs[rank["corpus_id"]]
+                for rank in sorted(ranks, key=lambda x: x["score"], reverse=True)
+            ]
+
         for rank, doc in enumerate(retrieved_docs, start=1):
             run.append(ScoredDoc(query_id=query.id, doc_id=doc.id, score=-rank))
 
@@ -79,12 +85,20 @@ def evaluate_model(model_name, queries, docs):
 
 
 if __name__ == "__main__":
-    queries, docs, qrels = load_data()
+    queries, docs, qrels = scidoc_cite_to_q_doc_qrel(
+        load_scidocs_cite()["validation"].shard(100, 0)
+    )
     print(f"Loaded {len(queries)} queries and {len(docs)} documents.")
 
     t1 = time()
     for model_name in EMBEDDING_MODELS:
         print(f"Evaluating model: {model_name}")
-        evaluate_model(model_name, queries, docs)
+        evaluate_model(model_name, queries, docs, qrels)
+        print("-" * 80)
+        print()
+        print(f"Evaluating model with reranker: {model_name} + {RERANKER_MODEL}")
+        evaluate_model(model_name, queries, docs, qrels, reranker=RERANKER_MODEL)
+        print("-" * 80)
+        print()
     t2 = time()
     print(f"Total evaluation time: {t2 - t1:.2f} seconds")
