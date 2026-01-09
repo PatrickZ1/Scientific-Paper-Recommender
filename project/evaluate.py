@@ -2,7 +2,6 @@ from collections import Counter
 from time import time
 import faiss
 import numpy as np
-from datasets import load_dataset
 from ir_measures import RR, Qrel, ScoredDoc, Success, calc_aggregate
 from langchain_community.docstore.in_memory import InMemoryDocstore
 from langchain_community.vectorstores import FAISS
@@ -11,14 +10,22 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from sentence_transformers.cross_encoder import CrossEncoder
 from tqdm import tqdm
 from recomm_dataset import *
+import pathlib
 
 EMBEDDING_MODELS = [
+    "pritamdeka/S-Scibert-snli-multinli-stsb",
     "sentence-transformers/allenai-specter",
     "sentence-transformers/stsb-roberta-base-v2",
-    "pritamdeka/S-Scibert-snli-multinli-stsb",
 ]
 
 RERANKER_MODEL = "cross-encoder/ms-marco-TinyBERT-L2-v2"
+
+FAISS_CACHE_DIR = pathlib.Path("./.faiss_cache")
+
+
+def to_safe_filename(model_name: str) -> str:
+    valid_chars = "-_.() abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+    return "".join(c if c in valid_chars else "_" for c in model_name)
 
 
 def evaluate_model(
@@ -47,18 +54,36 @@ def evaluate_model(
     if reranker is not None:
         rerank_model = CrossEncoder(reranker, max_length=512, device="cuda")
 
-    index = faiss.IndexFlatL2(len(embeddings.embed_query("hello world")))
-    vector_store = FAISS(
-        embedding_function=embeddings,
-        index=index,
-        docstore=InMemoryDocstore({}),
-        index_to_docstore_id={},
-        normalize_L2=True,
-    )
+    if (FAISS_CACHE_DIR / to_safe_filename(embedder_name)).exists():
+        vector_store = FAISS.load_local(
+            str(FAISS_CACHE_DIR / to_safe_filename(embedder_name)),
+            embeddings,
+            allow_dangerous_deserialization=True,
+        )
+        print("Loaded FAISS index from disk.")
+        print(f"Number of documents in index: {vector_store.index.ntotal}")
+        if vector_store.index.ntotal != len(docs):
+            raise ValueError(
+                "Number of documents in FAISS index does not match number of documents provided."
+            )
+        else:
+            print("Number of documents matches the provided documents.")
+    else:
+        index = faiss.IndexFlatL2(len(embeddings.embed_query("hello world")))
+        vector_store = FAISS(
+            embedding_function=embeddings,
+            index=index,
+            docstore=InMemoryDocstore({}),
+            index_to_docstore_id={},
+            normalize_L2=True,
+        )
 
-    embeddings.show_progress = True
-    vector_store.add_documents(docs)  # approximately 320 docs per sec
-    embeddings.show_progress = False
+        embeddings.show_progress = True
+        vector_store.add_documents(docs)
+        embeddings.show_progress = False
+
+        vector_store.save_local(str(FAISS_CACHE_DIR / to_safe_filename(embedder_name)))
+        print("Saved FAISS index to disk.")
 
     run = []
     for query in tqdm(queries, desc="Evaluating queries"):
@@ -89,12 +114,15 @@ def evaluate_model(
 
 
 if __name__ == "__main__":
+    FAISS_CACHE_DIR.mkdir(exist_ok=True)
+
     queries, docs, qrels = scidoc_cite_to_q_doc_qrel(
         load_scidocs_cite()["validation"].shard(100, 0)
     )
     print(f"Loaded {len(queries)} queries and {len(docs)} documents.")
 
     counts = np.array(list(Counter(qrel.query_id for qrel in qrels).values()))
+    print("Statistics of documents per query:")
     print("Min:", counts.min())
     print("Max:", counts.max())
     print("Mean:", counts.mean())
