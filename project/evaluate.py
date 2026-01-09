@@ -1,5 +1,7 @@
+from collections import Counter
 from time import time
 import faiss
+import numpy as np
 from datasets import load_dataset
 from ir_measures import RR, Qrel, ScoredDoc, Success, calc_aggregate
 from langchain_community.docstore.in_memory import InMemoryDocstore
@@ -17,6 +19,7 @@ EMBEDDING_MODELS = [
 ]
 
 RERANKER_MODEL = "cross-encoder/ms-marco-TinyBERT-L2-v2"
+
 
 def evaluate_model(
     embedder_name: str,
@@ -50,6 +53,7 @@ def evaluate_model(
         index=index,
         docstore=InMemoryDocstore({}),
         index_to_docstore_id={},
+        normalize_L2=True,
     )
 
     embeddings.show_progress = True
@@ -89,6 +93,12 @@ if __name__ == "__main__":
         load_scidocs_cite()["validation"].shard(100, 0)
     )
     print(f"Loaded {len(queries)} queries and {len(docs)} documents.")
+
+    counts = np.array(list(Counter(qrel.query_id for qrel in qrels).values()))
+    print("Min:", counts.min())
+    print("Max:", counts.max())
+    print("Mean:", counts.mean())
+    print("Median:", np.median(counts))
 
     t1 = time()
     for model_name in EMBEDDING_MODELS:
