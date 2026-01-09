@@ -15,11 +15,13 @@ MODEL_OUT_DIR = pathlib.Path("./models/cross_encoder") / "tinybert_scidocs_cite"
 CHECKPOINT_DIR = pathlib.Path("./.cross_enc_chkpt")
 
 # Number of pairs from the evaluation set to use for evaluation during training
-NUM_EVAL_PAIRS = 5000
+NUM_EVAL_PAIRS = 10000
 
 # NOTE: Adjust if using a GPU with more/less memory
-# NOTE: If you adjust this, adjust eval_steps and logging_steps in the training args accordingly
 BATCH_SIZE = 40
+
+SAVE_EVERY_N_SAMPLES = 40_000  # Save a checkpoint every N training samples (will be converted to steps based on batch size)
+EVAL_EVERY_N_SAMPLES = 5_000  # Evaluate every N training samples (will be converted to steps based on batch size); training metrics will be logged twice as often
 
 MODEL_OUT_DIR.mkdir(parents=True, exist_ok=True)
 CHECKPOINT_DIR.mkdir(parents=True, exist_ok=True)
@@ -30,9 +32,7 @@ scidocs_cite = load_scidocs_cite()
 
 # TODO: use more than 1/100 of the training data for quick testing
 train_dataset = scidoc_cite_to_train_triplets(
-    filter_scidocs_cite(
-        scidocs_cite["train"].shard(100, 0), load_relish()["evaluation"]
-    )
+    filter_scidocs_cite(scidocs_cite["train"], load_relish()["evaluation"])
 )
 
 # NOTE: Due to computational constraints, we use only a subset of the evaluation set for evaluation during training (5000 pairs take around 2sec on my machine)
@@ -67,15 +67,16 @@ args = CrossEncoderTrainingArguments(
     resume_from_checkpoint=True,
     per_device_train_batch_size=BATCH_SIZE,
     dataloader_num_workers=4,
-    save_steps=0.25,  # Save a checkpoint 4 times per epoch
+    save_steps=int(SAVE_EVERY_N_SAMPLES / BATCH_SIZE),
     report_to=["tensorboard"],
     eval_strategy="steps",
-    lr_scheduler_type="cosine",  # Changed from default (linear) to cosine
-    warmup_steps=100,  # Use with a linear warmup of the learning rate
+    warmup_steps=500,  # A linear warmup of the learning rate
     weight_decay=0.01,  # Change from default (0.0) to add a bit of weight decay
     bf16=True,  # Use mixed precision training
-    eval_steps=40,  # Evaluate every 40 steps
-    logging_steps=20,
+    eval_steps=int(EVAL_EVERY_N_SAMPLES / BATCH_SIZE),  # Evaluate every N steps
+    logging_steps=int(
+        EVAL_EVERY_N_SAMPLES / (2 * BATCH_SIZE)
+    ),  # Log twice as often as evaluation
     logging_first_step=True,
 )
 
