@@ -1,14 +1,14 @@
+import pathlib
+
+from recomm_dataset import *
 from sentence_transformers.cross_encoder import (
     CrossEncoder,
     CrossEncoderTrainer,
     CrossEncoderTrainingArguments,
-    losses,
     evaluation,
+    losses,
 )
 from sentence_transformers.training_args import BatchSamplers
-
-from recomm_dataset import *
-import pathlib
 
 BASE_MODEL = "cross-encoder/ms-marco-TinyBERT-L2-v2"
 MODEL_OUT_DIR = pathlib.Path("./models/cross_encoder") / "tinybert_scidocs_cite"
@@ -24,41 +24,43 @@ BATCH_SIZE = 40
 MODEL_OUT_DIR.mkdir(parents=True, exist_ok=True)
 CHECKPOINT_DIR.mkdir(parents=True, exist_ok=True)
 
-model = CrossEncoder(BASE_MODEL, device="cuda")
 
-scidocs_cite = load_scidocs_cite()
+def main():
+    model = CrossEncoder(BASE_MODEL, device="cuda")
 
-# TODO: use more than 1/100 of the training data for quick testing
-train_dataset = scidoc_cite_to_train_triplets(
-    filter_scidocs_cite(
-        scidocs_cite["train"].shard(100, 0), load_relish()["evaluation"]
+    scidocs_cite = load_scidocs_cite()
+
+    # TODO: use more than 1/100 of the training data for quick testing
+    train_dataset = scidoc_cite_to_train_triplets(
+        filter_scidocs_cite(
+            scidocs_cite["train"].shard(100, 0), load_relish()["evaluation"]
+        )
     )
-)
 
-# NOTE: Due to computational constraints, we use only a subset of the evaluation set for evaluation during training (5000 pairs take around 2sec on my machine)
-eval_pairs = []
-eval_labels = []
-for item in tqdm(
-    scidocs_cite["validation"].shuffle(seed=42).select(range(NUM_EVAL_PAIRS // 2)),
-    desc="Preparing evaluation pairs",
-):
-    query = item["query"]["title"] + " " + (item["query"]["abstract"] or "")
-    pos = item["pos"]["title"] + " " + (item["pos"]["abstract"] or "")
-    neg = item["neg"]["title"] + " " + (item["neg"]["abstract"] or "")
-    eval_pairs.append([query, pos])
-    eval_labels.append(1)
-    eval_pairs.append([query, neg])
-    eval_labels.append(0)
+    # NOTE: Due to computational constraints, we use only a subset of the evaluation set for evaluation during training (5000 pairs take around 2sec on my machine)
+    eval_pairs = []
+    eval_labels = []
+    for item in tqdm(
+        scidocs_cite["validation"].shuffle(seed=42).select(range(NUM_EVAL_PAIRS // 2)),
+        desc="Preparing evaluation pairs",
+    ):
+        query = item["query"]["title"] + " " + (item["query"]["abstract"] or "")
+        pos = item["pos"]["title"] + " " + (item["pos"]["abstract"] or "")
+        neg = item["neg"]["title"] + " " + (item["neg"]["abstract"] or "")
+        eval_pairs.append([query, pos])
+        eval_labels.append(1)
+        eval_pairs.append([query, neg])
+        eval_labels.append(0)
 
-evaluator = evaluation.CrossEncoderClassificationEvaluator(
-    eval_pairs,
-    eval_labels,
-    name="scidocs_cite_eval",
-)
+    evaluator = evaluation.CrossEncoderClassificationEvaluator(
+        eval_pairs,
+        eval_labels,
+        name="scidocs_cite_eval",
+    )
 
-# NOTE: Cached Version is slower to train and the batch size is sufficient to not benefit from reducing GPU memory usage
-loss = losses.MultipleNegativesRankingLoss(model)
-# loss = losses.CachedMultipleNegativesRankingLoss(model)
+    # NOTE: Cached Version is slower to train and the batch size is sufficient to not benefit from reducing GPU memory usage
+    loss = losses.MultipleNegativesRankingLoss(model)
+    # loss = losses.CachedMultipleNegativesRankingLoss(model)
 
 args = CrossEncoderTrainingArguments(
     output_dir=str(CHECKPOINT_DIR),
@@ -79,23 +81,27 @@ args = CrossEncoderTrainingArguments(
     logging_first_step=True,
 )
 
-trainer = CrossEncoderTrainer(
-    model=model,
-    train_dataset=train_dataset,
-    loss=loss,
-    evaluator=evaluator,
-    args=args,
-)
+    trainer = CrossEncoderTrainer(
+        model=model,
+        train_dataset=train_dataset,
+        loss=loss,
+        evaluator=evaluator,
+        args=args,
+    )
 
-try:
-    trainer.train(resume_from_checkpoint=True)
-except ValueError as e:
-    if "checkpoint" in str(e):
-        print("Restarting training from scratch (no valid checkpoint found).")
-        trainer.train()
-    else:
-        raise e
+    try:
+        trainer.train(resume_from_checkpoint=True)
+    except ValueError as e:
+        if "checkpoint" in str(e):
+            print("Restarting training from scratch (no valid checkpoint found).")
+            trainer.train()
+        else:
+            raise e
 
-# Save a clean, stable "final" model directory for evaluation loading
-model.save(str(MODEL_OUT_DIR))
-print(f"Saved fine-tuned CrossEncoder to: {MODEL_OUT_DIR.resolve()}")
+    # Save a clean, stable "final" model directory for evaluation loading
+    model.save(str(MODEL_OUT_DIR))
+    print(f"Saved fine-tuned CrossEncoder to: {MODEL_OUT_DIR.resolve()}")
+
+
+if __name__ == "__main__":
+    main()

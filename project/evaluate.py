@@ -1,5 +1,8 @@
+import os
+import pathlib
 from collections import Counter
-from time import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 import faiss
 import numpy as np
 from ir_measures import RR, Qrel, ScoredDoc, Success, calc_aggregate
@@ -7,15 +10,15 @@ from langchain_community.docstore.in_memory import InMemoryDocstore
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 from langchain_huggingface import HuggingFaceEmbeddings
+from recomm_dataset import *
 from sentence_transformers.cross_encoder import CrossEncoder
 from tqdm import tqdm
-from recomm_dataset import *
-import pathlib
-import os
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
+# NOTE: the currently fine-tuned embedding model is only trained on a very small subset of the data for quick testing
+#       For proper evaluation, please fine-tune on the full training set first!
 EMBEDDING_MODELS = [
     "sentence-transformers/stsb-roberta-base-v2",
+    "./models/embedding/roberta_scidocs_cite",  # fine-tuned model
     "pritamdeka/S-Scibert-snli-multinli-stsb",
     "sentence-transformers/allenai-specter",
 ]
@@ -115,6 +118,7 @@ def evaluate_model(
         print("Saved FAISS index to disk.")
 
     run = []
+
     def _eval_one_query(query):
         retrieved_docs = vector_store.similarity_search(query.page_content, k=k)
 
