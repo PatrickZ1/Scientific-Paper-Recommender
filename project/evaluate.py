@@ -1,6 +1,8 @@
+from collections import Counter
 from time import time
 
 import faiss
+import numpy as np
 from datasets import load_dataset
 from ir_measures import RR, Qrel, ScoredDoc, Success, calc_aggregate
 from langchain_community.docstore.in_memory import InMemoryDocstore
@@ -15,16 +17,20 @@ EMBEDDING_MODELS = [
 ]
 
 
-def load_data(split="validation"):
+def load_data(num_queries=1000, split="validation"):
     dataset = load_dataset("allenai/scirepeval", "cite_prediction_new", split=split)
-    dataset = dataset.select(range(10000))  # TODO: remove limit for full eval
     queries, docs = {}, {}
     qrels = []
 
     for item in dataset:
+        if len(queries) >= num_queries:
+            break
+
         query = item["query"]
         query_id = str(query["corpus_id"])
         query_text = f"{query['title']} [SEP] {query['abstract']}"
+        if query_id not in queries:
+            queries[query_id] = query_text
         queries[query_id] = query_text
 
         pos = item["pos"]
@@ -51,14 +57,15 @@ def evaluate_model(model_name, queries, docs):
         model_name=model_name, model_kwargs={"device": "cuda"}
     )
 
-    index = faiss.IndexFlatL2(len(embeddings.embed_query("hello world")))
+    index = faiss.IndexFlatIP(len(embeddings.embed_query("hello world")))
     vector_store = FAISS(
         embedding_function=embeddings,
         index=index,
         docstore=InMemoryDocstore({}),
         index_to_docstore_id={},
+        normalize_L2=True,
     )
-    vector_store.add_documents(docs)  # approximately 320 docs per sec
+    vector_store.add_documents(docs)
 
     run = []
     for query in queries:
@@ -81,6 +88,12 @@ def evaluate_model(model_name, queries, docs):
 if __name__ == "__main__":
     queries, docs, qrels = load_data()
     print(f"Loaded {len(queries)} queries and {len(docs)} documents.")
+
+    counts = np.array(list(Counter(qrel.query_id for qrel in qrels).values()))
+    print("Min:", counts.min())
+    print("Max:", counts.max())
+    print("Mean:", counts.mean())
+    print("Median:", np.median(counts))
 
     t1 = time()
     for model_name in EMBEDDING_MODELS:
