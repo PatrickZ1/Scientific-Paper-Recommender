@@ -12,23 +12,45 @@ from tqdm import tqdm
 from recomm_dataset import *
 import pathlib
 
+# TODO: allow loading of finetuned models
+
 EMBEDDING_MODELS = [
+    "sentence-transformers/stsb-roberta-base-v2",
     "pritamdeka/S-Scibert-snli-multinli-stsb",
     "sentence-transformers/allenai-specter",
-    "sentence-transformers/stsb-roberta-base-v2",
 ]
 
 RERANKER_MODEL = "cross-encoder/ms-marco-TinyBERT-L2-v2"
 
 FAISS_CACHE_DIR = pathlib.Path("./.faiss_cache")
 
+METRICS_PER_DATASET = {
+    "relish": [
+        Success(cutoff=1),
+        Success(cutoff=5),
+        Success(cutoff=10),
+        Success(cutoff=20),
+        RR(),
+    ],
+    "scidocs_cite": [
+        Success(cutoff=1),
+        Success(cutoff=5),
+        Success(cutoff=10),
+        Success(cutoff=20),
+        RR(),
+    ],
+}
 
-def to_safe_filename(model_name: str) -> str:
+
+def to_safe_filename(model_name: str, dataset_name: str) -> str:
     valid_chars = "-_.() abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-    return "".join(c if c in valid_chars else "_" for c in model_name)
+    return "".join(
+        c if c in valid_chars else "_" for c in model_name + "_" + dataset_name
+    )
 
 
 def evaluate_model(
+    dataset_name: str,
     embedder_name: str,
     queries: list[Document],
     docs: list[Document],
@@ -54,9 +76,9 @@ def evaluate_model(
     if reranker is not None:
         rerank_model = CrossEncoder(reranker, max_length=512, device="cuda")
 
-    if (FAISS_CACHE_DIR / to_safe_filename(embedder_name)).exists():
+    if (FAISS_CACHE_DIR / to_safe_filename(embedder_name, dataset_name)).exists():
         vector_store = FAISS.load_local(
-            str(FAISS_CACHE_DIR / to_safe_filename(embedder_name)),
+            str(FAISS_CACHE_DIR / to_safe_filename(embedder_name, dataset_name)),
             embeddings,
             allow_dangerous_deserialization=True,
         )
@@ -82,7 +104,9 @@ def evaluate_model(
         vector_store.add_documents(docs)
         embeddings.show_progress = False
 
-        vector_store.save_local(str(FAISS_CACHE_DIR / to_safe_filename(embedder_name)))
+        vector_store.save_local(
+            str(FAISS_CACHE_DIR / to_safe_filename(embedder_name, dataset_name))
+        )
         print("Saved FAISS index to disk.")
 
     run = []
@@ -101,42 +125,44 @@ def evaluate_model(
         for rank, doc in enumerate(retrieved_docs, start=1):
             run.append(ScoredDoc(query_id=query.id, doc_id=doc.id, score=-rank))
 
-    measures = [
-        Success(cutoff=1),
-        Success(cutoff=5),
-        Success(cutoff=10),
-        Success(cutoff=20),
-        RR(),
-    ]
-    agg = calc_aggregate(measures=measures, qrels=qrels, run=run)
-    for measure in measures:
+    agg = calc_aggregate(
+        measures=METRICS_PER_DATASET[dataset_name], qrels=qrels, run=run
+    )
+    for measure in METRICS_PER_DATASET[dataset_name]:
         print(f"{measure}: {agg[measure]:.4f}")
 
 
 if __name__ == "__main__":
     FAISS_CACHE_DIR.mkdir(exist_ok=True)
 
-    queries, docs, qrels = scidoc_cite_to_q_doc_qrel(
-        load_scidocs_cite()["validation"].shard(100, 0)
-    )
-    print(f"Loaded {len(queries)} queries and {len(docs)} documents.")
+    # TODO: use more than 1/100 of the validation data for quick testing
 
-    counts = np.array(list(Counter(qrel.query_id for qrel in qrels).values()))
-    print("Statistics of documents per query:")
-    print("Min:", counts.min())
-    print("Max:", counts.max())
-    print("Mean:", counts.mean())
-    print("Median:", np.median(counts))
+    eval_sets = {
+        "relish": relish_to_q_doc_qrel(load_relish()["evaluation"].shard(20, 0)),
+        "scidocs_cite": scidoc_cite_to_q_doc_qrel(
+            load_scidocs_cite()["validation"].shard(100, 0)
+        ),
+    }
 
-    t1 = time()
-    for model_name in EMBEDDING_MODELS:
-        print(f"Evaluating model: {model_name}")
-        evaluate_model(model_name, queries, docs, qrels)
-        print("-" * 80)
-        print()
-        print(f"Evaluating model with reranker: {model_name} + {RERANKER_MODEL}")
-        evaluate_model(model_name, queries, docs, qrels, reranker=RERANKER_MODEL)
-        print("-" * 80)
-        print()
-    t2 = time()
-    print(f"Total evaluation time: {t2 - t1:.2f} seconds")
+    for eval_name, (queries, docs, qrels) in eval_sets.items():
+        print(f"Evaluating on dataset: {eval_name}")
+        print(f"Loaded {len(queries)} queries and {len(docs)} documents.")
+
+        counts = np.array(list(Counter(qrel.query_id for qrel in qrels).values()))
+        print("Statistics of documents per query:")
+        print("Min:", counts.min())
+        print("Max:", counts.max())
+        print("Mean:", counts.mean())
+        print("Median:", np.median(counts))
+
+        for model_name in EMBEDDING_MODELS:
+            print(f"Evaluating model: {model_name}")
+            evaluate_model(eval_name, model_name, queries, docs, qrels)
+            print("-" * 80)
+            print()
+            print(f"Evaluating model with reranker: {model_name} + {RERANKER_MODEL}")
+            evaluate_model(
+                eval_name, model_name, queries, docs, qrels, reranker=RERANKER_MODEL
+            )
+            print("-" * 80)
+            print()

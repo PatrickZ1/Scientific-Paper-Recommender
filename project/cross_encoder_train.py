@@ -19,7 +19,7 @@ train_dataset = scidoc_cite_to_train_triplets(
 
 loss = losses.CachedMultipleNegativesRankingLoss(model, mini_batch_size=256)
 args = CrossEncoderTrainingArguments(
-    output_dir="./cross-encoder-checkpoints",
+    output_dir="./.cross_enc_chkpt",
     batch_sampler=BatchSamplers.NO_DUPLICATES,
     num_train_epochs=2,
     resume_from_checkpoint=True,

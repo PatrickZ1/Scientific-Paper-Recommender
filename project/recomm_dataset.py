@@ -69,3 +69,29 @@ def scidoc_cite_to_q_doc_qrel(dataset: Dataset):
     query_list = [Document(page_content=text, id=qid) for qid, text in queries.items()]
     doc_list = [Document(page_content=text, id=did) for did, text in docs.items()]
     return query_list, doc_list, qrels
+
+
+def relish_to_q_doc_qrel(dataset: Dataset):
+    """Convert ReLiSH dataset to lists of queries, docs, and qrels usable for evaluation with ir_measures."""
+    queries, docs = {}, {}
+    qrels = []
+
+    for item in tqdm(dataset, desc="Processing dataset to qrel format"):
+        query = item["query"]
+        query_id = str(query["corpus_id"])
+        query_text = f"{query['title']} [SEP] {query['abstract']}"
+        queries[query_id] = query_text
+
+        for doc in item["candidates"]:
+            doc_id = str(doc["corpus_id"])
+            doc_text = f"{doc['title']} [SEP] {doc['abstract']}"
+            if doc_id not in docs:
+                docs[doc_id] = doc_text
+
+            # Use same notion of relevance as in the original paper (2 = relevant, 1 = partially relevant, 0 = not relevant; for metric calculation, we treat partially relevant as not relevant)
+            relevance = 1 if doc["score"] == 2 else 0
+            qrels.append(Qrel(query_id=query_id, doc_id=doc_id, relevance=relevance))
+
+    query_list = [Document(page_content=text, id=qid) for qid, text in queries.items()]
+    doc_list = [Document(page_content=text, id=did) for did, text in docs.items()]
+    return query_list, doc_list, qrels

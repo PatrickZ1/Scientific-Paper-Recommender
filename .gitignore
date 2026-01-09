@@ -4,3 +4,4 @@ __pycache__/
 *checkpoint*/
 .venv/
 .faiss_cache/
+.cross_enc_chkpt/
