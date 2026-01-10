@@ -13,18 +13,14 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from recomm_dataset import *
 from sentence_transformers.cross_encoder import CrossEncoder
 from tqdm import tqdm
+import pickle as pkl
 
-# NOTE: the currently fine-tuned embedding model is only trained on a very small subset of the data for quick testing
-#       For proper evaluation, please fine-tune on the full training set first!
 EMBEDDING_MODELS = [
     "sentence-transformers/stsb-roberta-base-v2",
     "./models/embedding/roberta_scidocs_cite",  # fine-tuned model
     "pritamdeka/S-Scibert-snli-multinli-stsb",
     "sentence-transformers/allenai-specter",
 ]
-
-# NOTE: the currently fine-tuned reranker model is only trained on a very small subset of the data for quick testing
-#       For proper evaluation, please fine-tune on the full training set first!
 RERANKER_MODELS = [
     "cross-encoder/ms-marco-TinyBERT-L2-v2",
     "./models/cross_encoder/tinybert_scidocs_cite",  # fine-tuned model
@@ -32,6 +28,16 @@ RERANKER_MODELS = [
 
 FAISS_CACHE_DIR = pathlib.Path("./.faiss_cache")
 
+RESULTS_FILE = pathlib.Path("./evaluation_results.pkl")
+
+# How many bootstrap samples to use for confidence intervals
+BOOTSTRAP_N = 1000
+
+# Confidence interval bounds
+LOWER_CI = 0.05
+UPPER_CI = 0.95
+
+# Which metrics to compute per dataset
 METRICS_PER_DATASET = {
     "relish": [
         Success@1,
@@ -98,6 +104,7 @@ def evaluate_model(
     if rerank_name is not None:
         rerank_model = CrossEncoder(rerank_name, device="cuda")
 
+    # If a cached FAISS index exists for this model and dataset, load it
     if (FAISS_CACHE_DIR / to_safe_filename(embedder_name, dataset_name)).exists():
         vector_store = FAISS.load_local(
             str(FAISS_CACHE_DIR / to_safe_filename(embedder_name, dataset_name)),
@@ -134,6 +141,7 @@ def evaluate_model(
     run = []
 
     def _eval_one_query(query):
+        """Evaluate a single query and return the scored documents."""
         retrieved_docs = vector_store.similarity_search(query.page_content, k=k)
 
         if rerank_model is not None:
@@ -149,6 +157,7 @@ def evaluate_model(
             for rank, doc in enumerate(retrieved_docs, start=1)
         ]
 
+    # Evaluate the queries in parallel
     with ThreadPoolExecutor(max_workers=os.cpu_count()) as ex:
         futures = [ex.submit(_eval_one_query, q) for q in queries]
         for fut in tqdm(
@@ -156,18 +165,85 @@ def evaluate_model(
         ):
             run.extend(fut.result())
 
-    agg = calc_aggregate(
+    full_ds_eval = calc_aggregate(
         measures=METRICS_PER_DATASET[dataset_name], qrels=qrels, run=run
     )
+
+    # Group qrels / run by query_id for bootstrap sampling
+    qrels_by_qid = {}
+    for qr in qrels:
+        qrels_by_qid.setdefault(qr.query_id, []).append(qr)
+
+    run_by_qid = {}
+    for scored_doc in run:
+        run_by_qid.setdefault(scored_doc.query_id, []).append(scored_doc)
+
+    query_ids = list(qrels_by_qid.keys())
+    np.random.seed(42)
+
+    # Bootstrap sampling per query (not per document)
+    # Ensures that all scored documents and qrels for a given query are included together
+    # Calculate aggregate metrics for each bootstrap sample
+
+    boot_aggregates = []
+    for _ in tqdm(range(BOOTSTRAP_N), desc="Bootstrap sampling"):
+        sampled_qids = np.random.choice(query_ids, size=len(query_ids), replace=True)
+
+        boot_qrels = []
+        boot_run = []
+
+        # Rename query_ids to avoid collisions when the same query is sampled multiple times
+        for i, qid in enumerate(sampled_qids):
+            new_qid = f"{qid}_{i}"
+
+            for qr in qrels_by_qid[qid]:
+                boot_qrels.append(
+                    Qrel(query_id=new_qid, doc_id=qr.doc_id, relevance=qr.relevance)
+                )
+
+            for scored_doc in run_by_qid.get(qid, []):
+                boot_run.append(
+                    ScoredDoc(
+                        query_id=new_qid,
+                        doc_id=scored_doc.doc_id,
+                        score=scored_doc.score,
+                    )
+                )
+
+        boot_aggregates.append(
+            calc_aggregate(
+                measures=METRICS_PER_DATASET[dataset_name],
+                qrels=boot_qrels,
+                run=boot_run,
+            )
+        )
+
+    # Report mean and confidence intervals from the bootstrap samples
+    summary = {}
     for measure in METRICS_PER_DATASET[dataset_name]:
-        print(f"{measure}: {agg[measure]:.4f}")
-    return agg
+        vals = np.array([float(ba[measure]) for ba in boot_aggregates], dtype=float)
+        mean = float(vals.mean())
+        lower = float(np.quantile(vals, LOWER_CI))
+        upper = float(np.quantile(vals, UPPER_CI))
+        summary[measure] = {
+            "full_ds": float(full_ds_eval[measure]),
+            "mean": mean,
+            "ci_lower": lower,
+            "ci_upper": upper,
+        }
+        print(
+            f"{measure}: full_ds={summary[measure]['full_ds']:.4f} "
+            f"mean={mean:.4f} CI{round((UPPER_CI-LOWER_CI)*100)}%=[{lower:.4f}, {upper:.4f}]"
+        )
+
+    return summary
 
 def evaluate_all(eval_sets):
     eval_results = {}
 
     for eval_name, (queries, docs, qrels) in eval_sets.items():
         print(f"Evaluating on dataset: {eval_name}")
+        print("-" * 80)
         print(f"Loaded {len(queries)} queries and {len(docs)} documents.")
 
         counts = np.array(list(Counter(qrel.query_id for qrel in qrels).values()))
@@ -176,19 +252,25 @@ def evaluate_all(eval_sets):
         print("Max:", counts.max())
         print("Mean:", counts.mean())
         print("Median:", np.median(counts))
-        
+        print()
+
         eval_results[eval_name] = {}
 
         for model_name in EMBEDDING_MODELS:
             eval_results[eval_name][model_name] = {}
 
+            print("-" * 80)
             print(f"Evaluating model: {model_name}")
+            print("-" * 80)
             eval_results[eval_name][model_name]['None'] = evaluate_model(eval_name, model_name, queries, docs, qrels)
             print("-" * 80)
             print()
 
             for reranker_name in RERANKER_MODELS:
+                print("-" * 80)
                 print(f"Evaluating model with reranker: {model_name} + {reranker_name}")
+                print("-" * 80)
+
                 eval_results[eval_name][model_name][reranker_name] = evaluate_model(
                     eval_name,
                     model_name,
@@ -207,10 +289,12 @@ if __name__ == "__main__":
 
     # TODO: use more than 1/100 of the validation data for quick testing
     eval_sets = {
-        "relish": relish_to_q_doc_qrel(load_relish()["evaluation"].shard(20, 0)),
+        "relish": relish_to_q_doc_qrel(load_relish()["evaluation"].shard(100, 0)),
         "scidocs_cite": scidoc_cite_to_q_doc_qrel(
-            load_scidocs_cite()["validation"].shard(100, 0)
+            load_scidocs_cite()["validation"].shard(500, 0)
         ),
     }
-    
-    evaluate_all(eval_sets)
+
+    results = evaluate_all(eval_sets)
+    with open(RESULTS_FILE, "wb") as f:
+        pkl.dump(results, f)
