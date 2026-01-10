@@ -5,3 +5,4 @@ __pycache__/
 .venv/
 .faiss_cache/
 .cross_enc_chkpt/
+models/embedding/
