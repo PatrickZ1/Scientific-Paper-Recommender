@@ -62,15 +62,7 @@ METRICS_PER_DATASET = {
 
 
 def plot_metric(dataset_name, dataset_results, metric, save_path=None):
-    metric_name = str(metric)
-    if "@" in metric_name:
-        metric_name = (
-            METRIC_DISPLAY_NAMES[metric_name.split("@")[0]]
-            + "@"
-            + metric_name.split("@")[1]
-        )
-    else:
-        metric_name = METRIC_DISPLAY_NAMES[metric_name]
+    metric_name = METRIC_DISPLAY_NAMES[str(metric).split("@")[0]] + ("@" + str(metric).split("@")[1] if "@" in str(metric) else "")
 
     fig, ax = plt.subplots(figsize=(15, 6))
 
@@ -83,9 +75,7 @@ def plot_metric(dataset_name, dataset_results, metric, save_path=None):
     bar_width = 0.25
 
     for model_index, (model_name, model_results) in enumerate(dataset_results.items()):
-        for reranker_index, (reranker_name, metric_values) in enumerate(
-            model_results.items()
-        ):
+        for reranker_index, (reranker_name, metric_values) in enumerate(model_results.items()):
             value = metric_values[metric]["mean"]
             lower = metric_values[metric]["ci_lower"]
             upper = metric_values[metric]["ci_upper"]
@@ -118,23 +108,12 @@ def plot_metric(dataset_name, dataset_results, metric, save_path=None):
 
     if save_path:
         plt.savefig(str(save_path / f"{dataset_name}_{metric_name}.png"))
-
-    plt.show()
+    else:
+        plt.show()
 
 
 def plot_metrics(dataset_name, dataset_results, metrics, save_path=None):
-    metric_names = []
-    for metric in metrics:
-        metric_name = str(metric)
-        if "@" in metric_name:
-            metric_name = (
-                METRIC_DISPLAY_NAMES[metric_name.split("@")[0]]
-                + "@"
-                + metric_name.split("@")[1]
-            )
-        else:
-            metric_name = METRIC_DISPLAY_NAMES[metric_name]
-        metric_names.append(metric_name)
+    metric_names = [METRIC_DISPLAY_NAMES[str(metric).split("@")[0]] + ("@" + str(metric).split("@")[1] if "@" in str(metric) else "") for metric in metrics]
     metric_name = metric_names[-1].split("@")[0]
 
     fig, ax = plt.subplots(figsize=(15, 6))
@@ -149,9 +128,7 @@ def plot_metrics(dataset_name, dataset_results, metrics, save_path=None):
     alphas = [1.0, 0.7, 0.5, 0.3]
 
     for model_index, (model_name, model_results) in enumerate(dataset_results.items()):
-        for reranker_index, (reranker_name, metric_values) in enumerate(
-            model_results.items()
-        ):
+        for reranker_index, (reranker_name, metric_values) in enumerate(model_results.items()):
             values = [metric_values[metric]["full_ds"] for metric in metrics]
 
             bar_position = (
@@ -210,8 +187,48 @@ def plot_metrics(dataset_name, dataset_results, metrics, save_path=None):
 
     if save_path:
         plt.savefig(str(save_path / f"{dataset_name}_{'_'.join(metric_names)}.png"))
+    else:
+        plt.show()
 
-    plt.show()
+def plot_evaluation_time(dataset_name, dataset_results, metric, save_path=None):
+    metric_name = METRIC_DISPLAY_NAMES[str(metric).split("@")[0]] + ("@" + str(metric).split("@")[1] if "@" in str(metric) else "")
+
+    fig, ax = plt.subplots(figsize=(15, 6))
+
+    ax.set_title(
+        f"Evaluation Time on {DISPLAY_NAMES[dataset_name]}"
+    )
+    ax.set_ylabel(f"{metric_name}")
+    ax.set_xlabel(f"Evaluation Time (seconds)")
+
+    shapes = ["o", "^", "s", "D", "v", "P", "*", "X"]
+    for model_index, (model_name, model_results) in enumerate(dataset_results.items()):
+        for reranker_index, (reranker_name, metric_values) in enumerate(model_results.items()):
+            name = f"{DISPLAY_NAMES[model_name]}"
+            if reranker_name != "None":
+                name += f" + {DISPLAY_NAMES[reranker_name]}"
+
+            # print(metric_values['model_parameters'], model_name, reranker_name, metric_values['evaluation_time'], metric_values[metric]["mean"])
+            
+            scatter = ax.scatter(metric_values['evaluation_time'],
+                                metric_values[metric]["mean"],
+                                s=metric_values['model_parameters'] / 2_000_000,
+                                label=name,
+                                color=f"C{model_index}",
+                                marker=shapes[reranker_index])
+
+    ax.legend(title="Models", loc="upper left", bbox_to_anchor=(1.02, 1))
+    ax.grid(axis="both")
+    
+    fig.subplots_adjust(right=0.7)
+
+    # xmin, xmax = ax.get_xlim()
+    # ax.set_xlim(xmax=xmax + 0.05 * (xmax - xmin))
+
+    if save_path:
+        plt.savefig(str(save_path / f"{dataset_name}_evaluation_time_{metric_name}.png"))
+    else:
+        plt.show()
 
 
 if __name__ == "__main__":
@@ -228,11 +245,13 @@ if __name__ == "__main__":
 
     for dataset_name, dataset_results in eval_results.items():
         for metric in METRICS_PER_DATASET[dataset_name]:
-            plot_metric(dataset_name, dataset_results, metric, save_path=save_path)
+            # plot_metric(dataset_name, dataset_results, metric, save_path=save_path)
+            plot_evaluation_time(dataset_name, dataset_results, metric, save_path=save_path)
 
-        plot_metrics(
-            dataset_name,
-            dataset_results,
-            [Success @ 1, Success @ 5, Success @ 10],
-            save_path=save_path,
-        )
+        # plot_metrics(
+        #     dataset_name,
+        #     dataset_results,
+        #     [Success @ 1, Success @ 5, Success @ 10],
+        #     save_path=save_path,
+        # )
+

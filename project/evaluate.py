@@ -11,9 +11,11 @@ from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 from langchain_huggingface import HuggingFaceEmbeddings
 from recomm_dataset import *
+from sentence_transformers import SentenceTransformer
 from sentence_transformers.cross_encoder import CrossEncoder
 from tqdm import tqdm
 import pickle as pkl
+import time
 
 EMBEDDING_MODELS = [
     "sentence-transformers/stsb-roberta-base-v2",
@@ -157,6 +159,8 @@ def evaluate_model(
             for rank, doc in enumerate(retrieved_docs, start=1)
         ]
 
+    evaluation_start = time.time()
+
     # Evaluate the queries in parallel
     with ThreadPoolExecutor(max_workers=os.cpu_count()) as ex:
         futures = [ex.submit(_eval_one_query, q) for q in queries]
@@ -217,6 +221,8 @@ def evaluate_model(
                 run=boot_run,
             )
         )
+    
+    evaluation_time = time.time() - evaluation_start
 
     # Report mean and confidence intervals from the bootstrap samples
     summary = {}
@@ -235,6 +241,12 @@ def evaluate_model(
             f"{measure}: full_ds={summary[measure]['full_ds']:.4f} "
             f"mean={mean:.4f} CI{round((UPPER_CI-LOWER_CI)*100)}%=[{lower:.4f}, {upper:.4f}]"
         )
+    summary['evaluation_time'] = evaluation_time
+    
+    def parameter_count(model, trainable_only=False):
+        return sum(p.numel() for p in model.parameters() if not trainable_only or p.requires_grad)
+    
+    summary['model_parameters'] = parameter_count(SentenceTransformer(embedder_name)) + (parameter_count(rerank_model.model) if rerank_model is not None else 0)
 
     return summary
 
