@@ -5,7 +5,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import faiss
 import numpy as np
-from ir_measures import RR, Qrel, ScoredDoc, Success, calc_aggregate
+from ir_measures import Recall, Precision, MAP, nDCG, MRR, Qrel, ScoredDoc, Success, calc_aggregate
 from langchain_community.docstore.in_memory import InMemoryDocstore
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
@@ -34,18 +34,32 @@ FAISS_CACHE_DIR = pathlib.Path("./.faiss_cache")
 
 METRICS_PER_DATASET = {
     "relish": [
-        Success(cutoff=1),
-        Success(cutoff=5),
-        Success(cutoff=10),
-        Success(cutoff=20),
-        RR(),
+        Success@1,
+        Success@5,
+        Success@10,
+        Success@20,
+        MRR(),
+        nDCG@5,
+        nDCG@10,
+        MAP(),
+        Precision@5,
+        Precision@10,
+        Recall@5,
+        Recall@10,
     ],
     "scidocs_cite": [
-        Success(cutoff=1),
-        Success(cutoff=5),
-        Success(cutoff=10),
-        Success(cutoff=20),
-        RR(),
+        Success@1,
+        Success@5,
+        Success@10,
+        Success@20,
+        MRR(),
+        nDCG@5,
+        nDCG@10,
+        MAP(),
+        Precision@5,
+        Precision@10,
+        Recall@5,
+        Recall@10,
     ],
 }
 
@@ -147,18 +161,10 @@ def evaluate_model(
     )
     for measure in METRICS_PER_DATASET[dataset_name]:
         print(f"{measure}: {agg[measure]:.4f}")
+    return agg
 
-
-if __name__ == "__main__":
-    FAISS_CACHE_DIR.mkdir(exist_ok=True)
-
-    # TODO: use more than 1/100 of the validation data for quick testing
-    eval_sets = {
-        "relish": relish_to_q_doc_qrel(load_relish()["evaluation"].shard(20, 0)),
-        "scidocs_cite": scidoc_cite_to_q_doc_qrel(
-            load_scidocs_cite()["validation"].shard(100, 0)
-        ),
-    }
+def evaluate_all(eval_sets):
+    eval_results = {}
 
     for eval_name, (queries, docs, qrels) in eval_sets.items():
         print(f"Evaluating on dataset: {eval_name}")
@@ -170,16 +176,20 @@ if __name__ == "__main__":
         print("Max:", counts.max())
         print("Mean:", counts.mean())
         print("Median:", np.median(counts))
+        
+        eval_results[eval_name] = {}
 
         for model_name in EMBEDDING_MODELS:
+            eval_results[eval_name][model_name] = {}
+
             print(f"Evaluating model: {model_name}")
-            evaluate_model(eval_name, model_name, queries, docs, qrels)
+            eval_results[eval_name][model_name]['None'] = evaluate_model(eval_name, model_name, queries, docs, qrels)
             print("-" * 80)
             print()
 
             for reranker_name in RERANKER_MODELS:
                 print(f"Evaluating model with reranker: {model_name} + {reranker_name}")
-                evaluate_model(
+                eval_results[eval_name][model_name][reranker_name] = evaluate_model(
                     eval_name,
                     model_name,
                     queries,
@@ -189,4 +199,18 @@ if __name__ == "__main__":
                     rerank_name=reranker_name,
                 )
                 print("-" * 80)
-                print()
+                print()    
+    return eval_results
+
+if __name__ == "__main__":
+    FAISS_CACHE_DIR.mkdir(exist_ok=True)
+
+    # TODO: use more than 1/100 of the validation data for quick testing
+    eval_sets = {
+        "relish": relish_to_q_doc_qrel(load_relish()["evaluation"].shard(20, 0)),
+        "scidocs_cite": scidoc_cite_to_q_doc_qrel(
+            load_scidocs_cite()["validation"].shard(100, 0)
+        ),
+    }
+    
+    evaluate_all(eval_sets)
