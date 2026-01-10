@@ -28,7 +28,7 @@ RERANKER_MODELS = [
 
 FAISS_CACHE_DIR = pathlib.Path("./.faiss_cache")
 
-RESULTS_FILE = pathlib.Path("./evaluation_results.pkl")
+RESULTS_FILE = pathlib.Path("./project/evaluation_results.pkl")
 
 # How many bootstrap samples to use for confidence intervals
 BOOTSTRAP_N = 1000

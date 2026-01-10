@@ -5,7 +5,7 @@ import pathlib
 import pickle as pkl
 from ir_measures import Success, MRR, nDCG, MAP, Precision, Recall
 
-RESULTS_FILE = pathlib.Path("./evaluation_results.pkl")
+RESULTS_FILE = pathlib.Path("./project/evaluation_results.pkl")
 
 DISPLAY_NAMES = {
     "cross-encoder/ms-marco-TinyBERT-L2-v2": "TinyBERT",
