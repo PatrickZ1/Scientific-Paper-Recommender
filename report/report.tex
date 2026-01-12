@@ -1,0 +1,86 @@
+\documentclass[12pt]{article}
+\usepackage[a4paper, margin=1in]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usepackage{float}
+\usepackage{pifont}
+\usepackage[backend=biber,style=numeric,sorting=none,sortcites,backref,hyperref]{biblatex}
+\addbibresource{references.bib}
+
+\title{Recommender System for Research Papers \newline\newline \small Group 17}
+\author{
+  Matthias Bergmann (12219019) \and Maximilian Herczegh (12306066) \and Alexander Scheucher (12113826) \and
+    Patrick Ziegler (12303709)
+}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\vspace*{\fill}
+\begin{abstract}
+  With the ever growing amount of research papers being published, it becomes increasingly difficult for researchers to
+  stay updated in their respective fields and discover relevant literature. To address this challenge, we propose the
+  development and evaluation of a recommender system specifically designed to suggest relevant research papers based on
+  abstract-style textual user queries. In particular, we aim to evaluate the performance of various pre-trained embedding
+  models, fine-tuned variations and different retrieval techniques (such as the use of a separate model to re-rank
+  approximate k-nearest results) in the context of recommending research papers. The recommender system will be evaluated
+  using a large-scale dataset of research papers with query-positive-negative triplets derived from citation
+  relationships.\\ Our overarching research question is: \emph{How well do different combinations of transformer-based
+    embedding models and re-ranking models perform for research paper recommendation when evaluated on citation-based
+    benchmarks?}
+\end{abstract}
+\vspace*{\fill}
+
+\newpage
+
+\section{Introduction}
+
+Using transformer-based embedding models for text representation and information retrieval has become increasingly
+popular in recent years. In particular, models such as BERT~\cite{devlin-etal-2019-bert} and its variants have
+demonstrated remarkable performance on embedding tasks. Furthermore, the task of recommending resesarch papers on a
+given context has gained significant attention due to the growing volume of scientific literature. These systems aim to
+assist researchers in discovering relevant papers efficiently and aim to improve upon traditional keyword-based search
+methods. However, the lack of large-scale, high-quality datasets labeled for this task poses a significant challenge
+for the development and evaluation of such recommender systems.
+
+In this report, we evaluate how models fine-tuned on citation-based datasets perform in the context of recommending
+research papers. We explore various combinations of embedding models and retrieval techniques, including the use of
+re-ranking models to enhance the quality of the retrieved results.
+
+\section{Related Work}
+
+Cohan et al.~\cite{cohan-etal-2020-specter} introduced SPECTER, a model specifically designed for generating
+document-level embeddings of scientific papers based on the titel and abstract. SPECTER is fine-tuned on a large corpus
+of research papers using citation relationships as supervision signals. Singh et al.~\cite{Singh2022SciRepEvalAM}
+created SciRepEval, a larger benchmark dataset with multiple tasks for evaluating and comparing scientific paper
+representation models to address the reliance on citation-based supervision. This also includes
+RELISH~\cite{brown2019large}, an expert annotated dataset for research paper recommendations.
+
+Multiple pre-trained transformer-based models have been proposed for scientific text, such as
+SciBERT~\cite{beltagy-etal-2019-scibert}. Furthermore, the use of small cross-encoders, such as
+TinyBERT~\cite{jiao-etal-2020-tinybert}, for re-ranking retrieved documents has been shown to improve retrieval
+performance~\cite{nogueira2019multi} in multiple domains.
+
+We build upon these works and directly compare these existing fine-tuned models and cross-encoders for the task of
+research paper recommendation within a unified framework.
+
+\section{Experiments and Results}
+
+\subsection{Datasets}
+
+\subsection{Models and Methods}
+
+\subsection{Evaluation Metrics}
+
+\section{Conclusion}
+
+\newpage
+
+\section{Appendix A: Result Figures}
+
+\printbibliography[title=References]
+
+\end{document}
