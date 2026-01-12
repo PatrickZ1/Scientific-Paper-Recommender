@@ -30,7 +30,7 @@ RERANKER_MODELS = [
 
 FAISS_CACHE_DIR = pathlib.Path("./.faiss_cache")
 
-RESULTS_FILE = pathlib.Path("./project/evaluation_results.pkl")
+RESULTS_DIR = pathlib.Path("./project")
 
 # How many bootstrap samples to use for confidence intervals
 BOOTSTRAP_N = 1000
@@ -72,10 +72,10 @@ METRICS_PER_DATASET = {
 }
 
 
-def to_safe_filename(model_name: str, dataset_name: str) -> str:
+def to_safe_filename(*names: list[str]) -> str:
     valid_chars = "-_.() abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
     return "".join(
-        c if c in valid_chars else "_" for c in model_name + "_" + dataset_name
+        c if c in valid_chars else "_" for c in "_".join(names)
     )
 
 
@@ -278,6 +278,9 @@ def evaluate_all(eval_sets):
             print("-" * 80)
             print()
 
+            with open(RESULTS_DIR / f"evaluation_{to_safe_filename(eval_name, model_name, 'None')}.pkl", "wb") as f:
+                pkl.dump(eval_results[eval_name][model_name]['None'], f)
+
             for reranker_name in RERANKER_MODELS:
                 print("-" * 80)
                 print(f"Evaluating model with reranker: {model_name} + {reranker_name}")
@@ -294,19 +297,22 @@ def evaluate_all(eval_sets):
                 )
                 print("-" * 80)
                 print()    
+                
+                with open(RESULTS_DIR / f"evaluation_{to_safe_filename(eval_name, model_name, reranker_name)}.pkl", "wb") as f:
+                    pkl.dump(eval_results[eval_name][model_name][reranker_name], f)
+
     return eval_results
 
 if __name__ == "__main__":
     FAISS_CACHE_DIR.mkdir(exist_ok=True)
 
-    # TODO: use more than 1/100 of the validation data for quick testing
     eval_sets = {
-        "relish": relish_to_q_doc_qrel(load_relish()["evaluation"].shard(100, 0)),
+        "relish": relish_to_q_doc_qrel(load_relish()["evaluation"]),
         "scidocs_cite": scidoc_cite_to_q_doc_qrel(
-            load_scidocs_cite()["validation"].shard(500, 0)
+            load_scidocs_cite()["validation"]
         ),
     }
 
     results = evaluate_all(eval_sets)
-    with open(RESULTS_FILE, "wb") as f:
+    with open(RESULTS_DIR / f"evaluation.pkl", "wb") as f:
         pkl.dump(results, f)

@@ -4,13 +4,14 @@ import numpy as np
 import pathlib
 import pickle as pkl
 from ir_measures import Success, MRR, nDCG, MAP, Precision, Recall
+import evaluate
 
 RESULTS_FILE = pathlib.Path("./project/evaluation_results.pkl")
 
 DISPLAY_NAMES = {
     "cross-encoder/ms-marco-TinyBERT-L2-v2": "TinyBERT",
     "./models/cross_encoder/tinybert_scidocs_cite": "TinyBERT Fine Tuned",
-    "sentence-transformers/allenai-specter": "Specter",
+    "sentence-transformers/allenai-specter": "SPECTER2",
     "sentence-transformers/stsb-roberta-base-v2": "RoBERTa",
     "./models/embedding/roberta_scidocs_cite": "RoBERTa Fine Tuned",
     "pritamdeka/S-Scibert-snli-multinli-stsb": "SciBERT",
@@ -235,18 +236,33 @@ if __name__ == "__main__":
     save_path = pathlib.Path("figures")
     save_path.mkdir(exist_ok=True)
 
-    try:
-        with open(RESULTS_FILE, "rb") as f:
-            eval_results = pkl.load(f)
-    except FileNotFoundError:
-        raise FileNotFoundError(
-            f"Results file {RESULTS_FILE} not found. Please run evaluate.py first to generate evaluation results."
-        )
+    # try:
+    #     with open(RESULTS_FILE, "rb") as f:
+    #         eval_results = pkl.load(f)
+    # except FileNotFoundError:
+    #     raise FileNotFoundError(
+    #         f"Results file {RESULTS_FILE} not found. Please run evaluate.py first to generate evaluation results."
+    #     )
 
-    for dataset_name, dataset_results in eval_results.items():
+    for dataset_name in ["relish", "scidocs_cite"]:
+        dataset_results = {}
+        
+        for model_name in evaluate.EMBEDDING_MODELS:
+            for reranker_name in ["None"] + evaluate.RERANKER_MODELS:
+                try:
+                    with open(evaluate.RESULTS_DIR / f"evaluation_{evaluate.to_safe_filename(dataset_name, model_name, reranker_name)}.pkl", "rb") as f:
+                        results = pkl.load(f)
+                        if model_name not in dataset_results:
+                            dataset_results[model_name] = {}
+                        dataset_results[model_name][reranker_name] = results
+                except FileNotFoundError:
+                    print(f"Skipping file for {dataset_name}, {model_name}, {reranker_name} (not found)")
+                    continue
+        
         for metric in METRICS_PER_DATASET[dataset_name]:
-            # plot_metric(dataset_name, dataset_results, metric, save_path=save_path)
-            plot_evaluation_time(dataset_name, dataset_results, metric, save_path=save_path)
+            plot_metric(dataset_name, dataset_results, metric, save_path=save_path)
+            break
+            # plot_evaluation_time(dataset_name, dataset_results, metric, save_path=save_path)
 
         # plot_metrics(
         #     dataset_name,
