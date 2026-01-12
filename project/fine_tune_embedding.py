@@ -1,5 +1,6 @@
 import pathlib
 
+from recomm_dataset import *
 from sentence_transformers import (
     InputExample,
     SentenceTransformer,
@@ -10,14 +11,14 @@ from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 from sentence_transformers.losses import MultipleNegativesRankingLoss
 from sentence_transformers.training_args import BatchSamplers
 
-from recomm_dataset import *
-
 BASE_MODEL = "sentence-transformers/stsb-roberta-base-v2"
 MODEL_OUT_DIR = pathlib.Path("./models/embedding") / "roberta_scidocs_cite"
 CHECKPOINT_DIR = pathlib.Path("./.embedding_chkpt")
 
-NUM_EVAL_PAIRS = 200
-BATCH_SIZE = 20
+NUM_EVAL_PAIRS = 10000
+BATCH_SIZE = 40
+SAVE_EVERY_N_SAMPLES = 40_000
+EVAL_EVERY_N_SAMPLES = 5_000
 MODEL_OUT_DIR.mkdir(parents=True, exist_ok=True)
 CHECKPOINT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -27,9 +28,7 @@ def main():
 
     scidocs_cite = load_scidocs_cite()
     train_dataset = scidoc_cite_to_train_triplets(
-        filter_scidocs_cite(
-            scidocs_cite["train"].shard(1000, 0), load_relish()["evaluation"]
-        )
+        filter_scidocs_cite(scidocs_cite["train"], load_relish()["evaluation"])
     )
 
     examples = []
@@ -58,11 +57,14 @@ def main():
         resume_from_checkpoint=True,
         per_device_train_batch_size=BATCH_SIZE,
         dataloader_num_workers=4,  # change to 0 on AMD GPU to avoid HIP + multiprocessing + tensor sharing issues
-        save_steps=0.25,
+        save_steps=int(SAVE_EVERY_N_SAMPLES / BATCH_SIZE),
         report_to=["tensorboard"],
         eval_strategy="steps",
-        eval_steps=80,
-        logging_steps=40,
+        warmup_steps=500,
+        weight_decay=0.01,
+        bf16=True,
+        eval_steps=int(EVAL_EVERY_N_SAMPLES / BATCH_SIZE),
+        logging_steps=int(EVAL_EVERY_N_SAMPLES / (2 * BATCH_SIZE)),
         logging_first_step=True,
     )
 
