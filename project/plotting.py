@@ -75,7 +75,9 @@ def plot_metric(dataset_name, dataset_results, metric, save_path=None):
     x = np.arange(len(dataset_results) + 3)
     bar_width = 0.25
 
-    for model_index, (model_name, model_results) in enumerate(dataset_results.items()):
+    # exclude scibert from plotting for better clarity
+    dataset_result_items = filter(lambda r: r[0] != "pritamdeka/S-Scibert-snli-multinli-stsb", dataset_results.items())
+    for model_index, (model_name, model_results) in enumerate(dataset_result_items):
         for reranker_index, (reranker_name, metric_values) in enumerate(model_results.items()):
             value = metric_values[metric]["mean"]
             lower = metric_values[metric]["ci_lower"]
@@ -103,9 +105,12 @@ def plot_metric(dataset_name, dataset_results, metric, save_path=None):
     )
     ax.grid(axis="x")
 
-    # add x range padding
-    xmin, xmax = ax.get_xlim()
-    ax.set_xlim(xmax=xmax + 0.05 * (xmax - xmin))
+    # set x range, this is hardcoded for our specific results
+    _, xmax = ax.get_xlim()
+    if xmax < 0.5:
+        ax.set_xlim(xmax=0.35)
+    else:
+        ax.set_xlim(xmax=0.75)
 
     if save_path:
         plt.savefig(str(save_path / f"{dataset_name}_{metric_name}.png"))
@@ -236,38 +241,16 @@ if __name__ == "__main__":
     save_path = pathlib.Path("figures")
     save_path.mkdir(exist_ok=True)
 
-    # try:
-    #     with open(RESULTS_FILE, "rb") as f:
-    #         eval_results = pkl.load(f)
-    # except FileNotFoundError:
-    #     raise FileNotFoundError(
-    #         f"Results file {RESULTS_FILE} not found. Please run evaluate.py first to generate evaluation results."
-    #     )
+    try:
+        with open(RESULTS_FILE, "rb") as f:
+            eval_results = pkl.load(f)
+    except FileNotFoundError:
+        raise FileNotFoundError(
+            f"Results file {RESULTS_FILE} not found. Please run evaluate.py first to generate evaluation results."
+        )
 
-    for dataset_name in ["relish", "scidocs_cite"]:
-        dataset_results = {}
-        
-        for model_name in evaluate.EMBEDDING_MODELS:
-            for reranker_name in ["None"] + evaluate.RERANKER_MODELS:
-                try:
-                    with open(evaluate.RESULTS_DIR / f"evaluation_{evaluate.to_safe_filename(dataset_name, model_name, reranker_name)}.pkl", "rb") as f:
-                        results = pkl.load(f)
-                        if model_name not in dataset_results:
-                            dataset_results[model_name] = {}
-                        dataset_results[model_name][reranker_name] = results
-                except FileNotFoundError:
-                    print(f"Skipping file for {dataset_name}, {model_name}, {reranker_name} (not found)")
-                    continue
-        
+    for dataset_name, dataset_results in eval_results.items():
         for metric in METRICS_PER_DATASET[dataset_name]:
             plot_metric(dataset_name, dataset_results, metric, save_path=save_path)
-            break
-            # plot_evaluation_time(dataset_name, dataset_results, metric, save_path=save_path)
 
-        # plot_metrics(
-        #     dataset_name,
-        #     dataset_results,
-        #     [Success @ 1, Success @ 5, Success @ 10],
-        #     save_path=save_path,
-        # )
 
