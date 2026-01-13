@@ -125,7 +125,8 @@ a \texttt{MultipleNegativesRankingLoss}\cite{henderson2017efficient} loss functi
 query-positive-negative triplets. This loss function maximizes the similarity between the query and positive sample,
 while minimizing the similarity between the query and all other in-batch samples (negatives). This happens by embedding
 each document separately and employing a cross entropy loss on the pairwise cosine similarities. Based on the available
-GPU compute, we fine-tune for one full epoch with a batch size of 40, 16-bit precision, learning-rate warmup and all
+GPU compute, we fine-tune for one full epoch with a batch size of 40, 16-bit precision, learning-rate warmup for 500
+steps and weight decay of 0.01, with all
 other parameters as default.
 
 The cross-encoder TinyBERT-L2-v2 is fine-tuned using the same parameters and loss function. However, this model
