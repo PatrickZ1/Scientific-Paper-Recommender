@@ -85,7 +85,8 @@ research paper recommendation within a unified framework.
 
 \subsection{Datasets}
 
-We are using the citation-triplets dataset from SciRepEval~\cite{Singh2022SciRepEvalAM} for fine-tuning and evaluating
+We are using the citation-triplets subset (also called SciDocs-Cite) from SciRepEval~\cite{Singh2022SciRepEvalAM} for
+fine-tuning and evaluating
 our models. Each sample in this dataset consists of a
 query paper $\mathcal{P}^Q$, a positive paper $\mathcal{P}^+$ and a negative paper $\mathcal{P}^-$. Each paper contains
 the title and an abstract. The train set contains around 6.2 million triplets, while the evaluation set contains around
@@ -185,7 +186,7 @@ query (as is the case in RELISH).
 
 Overall, our experiments demonstrate the effectiveness of transformer-based embedding models and re-ranking techniques
 for research paper recommendation. Comparing the results on both datasets, we observe that the performance on the
-RELISH dataset is generally higher than on the SciRepEval dataset. While this supports the effectiveness of
+RELISH dataset is generally higher than on the SciDocs-Cite dataset. While this supports the effectiveness of
 citation-based pre-training for research paper recommendation, the disparity is likely influenced by dataset
 characteristics, such as domain specificity and the higher number of relevant documents per query in RELISH.
 
@@ -285,7 +286,7 @@ techniques could provide further insights into the optimal configurations for re
  & TinyBERT Fine Tuned & 61.9 (61.5--62.4) & 41.1 (40.8--41.4) & 31.3 (31.0--31.6) & 40.9 (40.6--41.2) & 21.9 (21.7--22.1)\\
  \hline
  \end{tabular}
- \caption{Evaluation results on the SciRepEval citation-triplets dataset for all model combinations and selected metrics including the 90\% confidence interval. Best results per metric are \textbf{bolded}, second best are \underline{underlined}.}
+ \caption{Evaluation results on the SciDocs-Cite citation-triplets dataset for all model combinations and selected metrics including the 90\% confidence interval. Best results per metric are \textbf{bolded}, second best are \underline{underlined}.}
  \label{tab:metrics-scirepeval}
 \end{table}
 
@@ -339,7 +340,7 @@ techniques could provide further insights into the optimal configurations for re
       \hline
       \multicolumn{2}{|c|}{\textit{Datasets}}                                                                              \\
       \hline
-      SciRepEval (Citation Triplets) & \url{https://huggingface.co/datasets/allenai/scirepeval/viewer/cite_prediction_new} \\
+      SciDocs-Cite & \url{https://huggingface.co/datasets/allenai/scirepeval/viewer/cite_prediction_new} \\
       \hline
       RELISH                         & \url{https://huggingface.co/datasets/allenai/scirepeval/viewer/relish}              \\
       \hline
