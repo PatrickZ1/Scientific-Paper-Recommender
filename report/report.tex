@@ -4,8 +4,10 @@
 \usepackage{hyperref}
 \usepackage{tikz}
 \usepackage{float}
+\usepackage{multirow}
 \usepackage{pifont}
 \usepackage{amsmath}
+\usepackage{pdflscape}
 \usepackage{amssymb}
 \usepackage[backend=biber,style=numeric,sorting=none,sortcites,backref,hyperref]{biblatex}
 \addbibresource{references.bib}
@@ -162,7 +164,7 @@ library~\cite{zhu2004recall,jarvelin2002cumulated}. We employ query level bootst
 \section{Conclusion and Results}
 
 Full evaluation results for all model combinations on both datasets and all metrics are shown in Appendix A
-(Table~\ref{tab:metrics-scirepeval} and Table~\ref{tab:metrics-relish}). As can be seen in Figur
+(Table~\ref{tab:metrics-relish} and Table~\ref{tab:metrics-scirepeval}). As can be seen in Figure
 
 % Why MRR on relish is only where fine tuned reranker is better -> misaligned training objective (one positive many negatives)
 
@@ -186,49 +188,91 @@ techniques could provide further insights into the optimal configurations for re
 
 \newpage
 
+\begin{landscape}
+
 \section*{Appendix A: All Metrics}
 
-\begin{table}[H]
+\begin{table}[h]
   \centering
-  \caption{Dummy evaluation metrics on the SciRepEval citation-triplets evaluation set.}
-  \label{tab:metrics-scirepeval}
-  \begin{tabular}{|l|c|c|c|c|c|c|}
-    \hline
-    \textbf{Model}            & \textbf{Success@20} & \textbf{MRR} & \textbf{nDCG@20} & \textbf{MAP} & \textbf{P@20} & \textbf{R@20} \\
-    \hline
-    SPECTER                   & 0.00                & 0.00         & 0.00             & 0.00         & 0.00          & 0.00          \\
-    \hline
-    SciBERT                   & 0.00                & 0.00         & 0.00             & 0.00         & 0.00          & 0.00          \\
-    \hline
-    RoBERTa (base)            & 0.00                & 0.00         & 0.00             & 0.00         & 0.00          & 0.00          \\
-    \hline
-    RoBERTa (fine-tuned)      & 0.00                & 0.00         & 0.00             & 0.00         & 0.00          & 0.00          \\
-    \hline
-    SPECTER + TinyBERT rerank & 0.00                & 0.00         & 0.00             & 0.00         & 0.00          & 0.00          \\
-    \hline
-  \end{tabular}
+  \renewcommand{\arraystretch}{1.25}
+  \begin{tabular}{|l|l|c|c|c|c|c|}
+  \hline
+\textbf{Model} & \textbf{Reranker} & \textbf{MRR} & \textbf{nDCG@10} & \textbf{MAP} & \textbf{Recall@5} & \textbf{Recall@10}\\
+\hline
+\hline
+\multirow{3}{*}{RoBERTa} & None & 51.9 (50.8--52.9) & 34.0 (33.2--34.7) & 13.8 (13.4--14.3) & 10.7 (10.3--11.1) & 17.1 (16.6--17.6)\\
+\hline
+ & TinyBERT & 62.4 (61.4--63.5) & 44.8 (44.0--45.6) & 20.1 (19.5--20.6) & 14.9 (14.4--15.4) & 22.4 (21.9--23.0)\\
+ \hline
+ & TinyBERT Fine Tuned & 64.2 (63.1--65.4) & 41.7 (40.9--42.5) & 18.5 (18.0--19.0) & 13.0 (12.6--13.5) & 20.5 (19.9--21.0)\\
+ \hline
+\hline
+\multirow{3}{*}{RoBERTa Fine Tuned} & None & 64.4 (63.4--65.3) & 49.3 (48.5--50.1) & 25.0 (24.5--25.6) & 16.7 (16.2--17.2) & 26.7 (26.0--27.3)\\
+\hline
+& TinyBERT & 66.7 (65.7--67.7) & \underline{53.7 (52.9--54.4)} & \underline{30.7 (30.1--31.3)} & \textbf{17.9 (17.4--18.4)} & \textbf{29.2 (28.5--29.8)}\\
+\hline
+& TinyBERT Fine Tuned & \underline{69.2 (68.1--70.2)} & 48.8 (48.0--49.7) & 27.8 (27.3--28.4) & 15.2 (14.7--15.6) & 25.4 (24.9--26.0)\\
+\hline
+\hline
+\multirow{3}{*}{SciBERT} & None & 61.3 (60.3--62.3) & 44.9 (44.1--45.8) & 21.3 (20.8--21.8) & 14.7 (14.3--15.2) & 23.8 (23.2--24.4)\\
+\hline
+& TinyBERT & 65.7 (64.7--66.7) & 51.2 (50.4--52.0) & 27.4 (26.8--28.0) & 16.9 (16.4--17.4) & 27.1 (26.5--27.7)\\
+\hline
+& TinyBERT Fine Tuned & 67.5 (66.5--68.6) & 46.7 (45.9--47.6) & 25.0 (24.4--25.5) & 14.3 (13.9--14.8) & 23.7 (23.2--24.3)\\
+\hline
+\hline
+\multirow{3}{*}{SPECTER} & None & 65.9 (64.9--66.9) & 50.9 (50.2--51.7) & 25.7 (25.2--26.2) & 17.1 (16.7--17.6) & 27.1 (26.5--27.7)\\
+\hline
+& TinyBERT & 66.7 (65.7--67.7) & \textbf{54.1 (53.3--54.8)} & \textbf{31.0 (30.4--31.5)} & \underline{17.8 (17.2--18.3)} & \underline{29.1 (28.5--29.7)}\\
+\hline
+& TinyBERT Fine Tuned & \textbf{70.3 (69.3--71.4)} & 50.6 (49.9--51.4) & 28.9 (28.3--29.4) & 15.4 (15.0--15.8) & 26.1 (25.6--26.7)\\
+\hline
+\end{tabular}
+  \caption{Evaluation results on the RELISH ranked recommendation dataset for all model combinations and selected metrics including the 90\% confidence interval. Best results per metric are \textbf{bolded}, second best are \underline{underlined}.}
+  \label{tab:metrics-relish}
 \end{table}
 
-\begin{table}[H]
+\begin{table}[h]
   \centering
-  \caption{Dummy evaluation metrics on the RELISH dataset.}
-  \label{tab:metrics-relish}
-  \begin{tabular}{|l|c|c|c|c|c|c|}
-    \hline
-    \textbf{Model}            & \textbf{Success@20} & \textbf{MRR} & \textbf{nDCG@20} & \textbf{MAP} & \textbf{P@20} & \textbf{R@20} \\
-    \hline
-    SPECTER                   & 0.00                & 0.00         & 0.00             & 0.00         & 0.00          & 0.00          \\
-    \hline
-    SciBERT                   & 0.00                & 0.00         & 0.00             & 0.00         & 0.00          & 0.00          \\
-    \hline
-    RoBERTa (base)            & 0.00                & 0.00         & 0.00             & 0.00         & 0.00          & 0.00          \\
-    \hline
-    RoBERTa (fine-tuned)      & 0.00                & 0.00         & 0.00             & 0.00         & 0.00          & 0.00          \\
-    \hline
-    SPECTER + TinyBERT rerank & 0.00                & 0.00         & 0.00             & 0.00         & 0.00          & 0.00          \\
-    \hline
-  \end{tabular}
+  \renewcommand{\arraystretch}{1.25}
+  \begin{tabular}{|l|l|c|c|c|c|c|}
+  \hline
+  \textbf{Model} & \textbf{Reranker} & \textbf{MRR} & \textbf{nDCG@10} & \textbf{MAP} & \textbf{Recall@5} & \textbf{Recall@10}\\
+  \hline
+  \hline
+  \multirow{3}{*}{RoBERTa} & None & 41.7 (41.2--42.2) & 22.0 (21.7--22.3) & 14.7 (14.5--15.0) & 16.1 (15.9--16.4) & 20.6 (20.4--20.9)\\
+  \hline
+  & TinyBERT & 54.6 (54.1--55.1) & 29.5 (29.2--29.8) & 20.8 (20.5--21.1) & 22.2 (22.0--22.5) & 25.5 (25.2--25.8)\\
+  \hline
+  & TinyBERT Fine Tuned & 52.5 (52.0--53.0) & 29.1 (28.8--29.4) & 20.2 (20.0--20.5) & 22.2 (22.0--22.5) & 26.0 (25.8--26.3)\\
+  \hline
+  \hline
+  \multirow{3}{*}{RoBERTa Fine Tuned} & None & 63.6 (63.1--64.1) & 41.6 (41.3--42.0) & 31.9 (31.6--32.2) & 31.6 (31.3--31.9) & 40.9 (40.6--41.3)\\
+  \hline
+  & TinyBERT & \textbf{67.0 (66.5--67.4)} & \textbf{44.1 (43.7--44.4)} & \textbf{34.4 (34.1--34.7)} & \textbf{33.4 (33.1--33.7)} & \textbf{42.8 (42.5--43.2)}\\
+  \hline
+  & TinyBERT Fine Tuned & 61.8 (61.4--62.3) & \underline{41.8 (41.5--42.1)} & 32.1 (31.8--32.4) & 31.5 (31.2--31.8) & \underline{42.6 (42.3--43.0)}\\
+  \hline
+  \hline
+  \multirow{3}{*}{SciBERT} & None & 56.1 (55.6--56.6) & 33.6 (33.3--33.9) & 24.5 (24.3--24.8) & 25.1 (24.8--25.3) & 32.1 (31.8--32.4)\\
+  \hline
+ & TinyBERT & 63.2 (62.7--63.7) & 39.0 (38.7--39.4) & 29.3 (29.1--29.6) & 29.7 (29.4--30.0) & 36.4 (36.1--36.7)\\
+ \hline
+ & TinyBERT Fine Tuned & 59.6 (59.2--60.1) & 38.2 (37.8--38.5) & 28.2 (27.9--28.5) & 29.2 (28.9--29.5) & 37.2 (36.9--37.5)\\
+ \hline
+\hline
+\multirow{3}{*}{SPECTER} & None & 60.5 (60.0--61.0) & 38.6 (38.3--38.9) & 29.3 (29.0--29.6) & 29.2 (28.9--29.5) & 37.4 (37.1--37.8)\\
+\hline
+ & TinyBERT & \underline{64.6 (64.2--65.1)} & 41.6 (41.3--41.9) & \underline{32.1 (31.8--32.4)} & \underline{31.7 (31.4--32.0)} & 39.9 (39.6--40.2)\\
+ \hline
+ & TinyBERT Fine Tuned & 61.9 (61.5--62.4) & 41.1 (40.8--41.4) & 31.3 (31.0--31.6) & 31.3 (31.0--31.6) & 40.9 (40.6--41.2)\\
+ \hline
+ \end{tabular}
+  \caption{Evaluation results on the SciRepEval citation-triplets dataset for all model combinations and selected metrics including the 90\% confidence interval. Best results per metric are \textbf{bolded}, second best are \underline{underlined}.}
+  \label{tab:metrics-scirepeval}
 \end{table}
+
+\end{landscape}
 
 \section*{Appendix B: Result Figures}
 

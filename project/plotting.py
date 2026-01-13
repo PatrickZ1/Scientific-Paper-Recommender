@@ -6,12 +6,12 @@ import pickle as pkl
 from ir_measures import Success, MRR, nDCG, MAP, Precision, Recall
 import evaluate
 
-RESULTS_FILE = pathlib.Path("./project/evaluation_results.pkl")
+RESULTS_FILE = pathlib.Path("./project/evaluation.pkl")
 
 DISPLAY_NAMES = {
     "cross-encoder/ms-marco-TinyBERT-L2-v2": "TinyBERT",
     "./models/cross_encoder/tinybert_scidocs_cite": "TinyBERT Fine Tuned",
-    "sentence-transformers/allenai-specter": "SPECTER2",
+    "sentence-transformers/allenai-specter": "SPECTER",
     "sentence-transformers/stsb-roberta-base-v2": "RoBERTa",
     "./models/embedding/roberta_scidocs_cite": "RoBERTa Fine Tuned",
     "pritamdeka/S-Scibert-snli-multinli-stsb": "SciBERT",
@@ -28,6 +28,9 @@ METRIC_DISPLAY_NAMES = {
     "RR": "MRR",
     "Success": "Success",
 }
+
+# NOTE: Exclude SciBERT from plotting for better clartiy on the charts as shown on the slides -> include SciBERT in the plots for the report
+EXCLUDE_SCIBERT_FROM_PLOTTING = False
 
 # Which metrics to plot per dataset
 METRICS_PER_DATASET = {
@@ -72,12 +75,14 @@ def plot_metric(dataset_name, dataset_results, metric, save_path=None):
     )
     ax.set_xlabel(f"{metric_name}")
 
-    x = np.arange(len(dataset_results) + 3)
     bar_width = 0.25
 
     # exclude scibert from plotting for better clarity
-    dataset_result_items = filter(lambda r: r[0] != "pritamdeka/S-Scibert-snli-multinli-stsb", dataset_results.items())
-    for model_index, (model_name, model_results) in enumerate(dataset_result_items):
+    filtered_dataset = {k: v for k, v in dataset_results.items() if (k != "pritamdeka/S-Scibert-snli-multinli-stsb") or not EXCLUDE_SCIBERT_FROM_PLOTTING}
+
+    x = np.arange(len(filtered_dataset) + 3)
+
+    for model_index, (model_name, model_results) in enumerate(filtered_dataset.items()):
         for reranker_index, (reranker_name, metric_values) in enumerate(model_results.items()):
             value = metric_values[metric]["mean"]
             lower = metric_values[metric]["ci_lower"]
@@ -101,16 +106,16 @@ def plot_metric(dataset_name, dataset_results, metric, save_path=None):
     ax.legend(title="Rerankers", loc="upper left")
     ax.set_yticks(x)
     ax.set_yticklabels(
-        [""] + [DISPLAY_NAMES[n] for n in dataset_results.keys()] + [""] * 2
+        [""] + [DISPLAY_NAMES[n] for n in filtered_dataset.keys()] + [""] * 2
     )
     ax.grid(axis="x")
 
     # set x range, this is hardcoded for our specific results
-    _, xmax = ax.get_xlim()
-    if xmax < 0.5:
-        ax.set_xlim(xmax=0.35)
-    else:
-        ax.set_xlim(xmax=0.75)
+    # _, xmax = ax.get_xlim()
+    # if xmax < 0.5:
+    #     ax.set_xlim(xmax=0.35)
+    # else:
+    #     ax.set_xlim(xmax=0.75)
 
     if save_path:
         plt.savefig(str(save_path / f"{dataset_name}_{metric_name}.png"))
@@ -252,5 +257,3 @@ if __name__ == "__main__":
     for dataset_name, dataset_results in eval_results.items():
         for metric in METRICS_PER_DATASET[dataset_name]:
             plot_metric(dataset_name, dataset_results, metric, save_path=save_path)
-
-
