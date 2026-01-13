@@ -7,8 +7,8 @@ METRICS = [
     MRR(),
     nDCG @ 10,
     MAP(),
-    Recall @ 5,
     Recall @ 10,
+    Precision @ 10,
 ]
 
 DATASETS = ["relish", "scidocs_cite"]
