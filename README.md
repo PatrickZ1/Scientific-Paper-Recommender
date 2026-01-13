@@ -137,3 +137,9 @@ python project/evaluate.py
 ```bash
 python project/plotting.py
 ```
+
+## Contributors
+- **Matthias Bergmann**: Evaluation and Metrics
+- **Maximilian Herczegh**: Recommender System Design
+- **Alexander Scheucher**: Model Research, Fine-tuning
+- **Patrick Ziegler**: Data Processing, Fine-tuning
