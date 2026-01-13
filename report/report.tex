@@ -71,7 +71,7 @@ document-level embeddings of scientific papers based on the title and abstract. 
 al.~\cite{Singh2022SciRepEvalAM}
 created SciRepEval, a larger benchmark dataset with multiple tasks for evaluating and comparing scientific paper
 representation models to address the reliance on citation-based supervision. This also includes
-RELISH~\cite{brown2019large}, an expert annotated dataset for research paper recommendations.
+RELISH~\cite{brown2019large}, an expert-annotated dataset for research paper recommendations.
 
 Multiple pre-trained transformer-based models have been proposed for scientific text, such as
 SciBERT~\cite{beltagy-etal-2019-scibert}. Furthermore, the use of small cross-encoders, such as
@@ -97,15 +97,15 @@ the query paper. Thus, a paper $\mathcal{P}^H$ is a candidate hard negative if t
 $\mathcal{P}^I$ such that $\mathcal{P}^Q \citerel \mathcal{P}^I \citerel \mathcal{P}^H$ and $\mathcal{P}^Q \nociterel
   \mathcal{P}^H$. Easy negatives are randomly sampled papers that are not cited by the query paper.
 
-To evaluate how a citation based recommender system transfers to real world recommendations we evaluate all our models
+To evaluate how a citation-based recommender system transfers to real-world recommendations we evaluate all our models
 on the RELISH dataset~\cite{brown2019large}. This dataset contains
-expert annotated relevance judgements for research paper recommendations in the biomedical domain. It contains around
+expert-annotated relevance judgments for research paper recommendations in the biomedical domain. It contains around
 3k queries, each with 60 ranked documents on average. Each query and document contains the title and abstract.
 Following the convention of Brown and Yaoqi~\cite{brown2019large}, we consider documents marked \textit{relevant} as
 positives and \textit{somewhat-relevant} and \textit{irrelevant} as negatives.
 
 To ensure no data leakage occurs, we use the pre-existing train / evaluation split of the citation-triplets dataset and
-removed all papers in its training set that are also present in the RELISH dataset.
+remove all papers in its training set that are also present in the RELISH dataset.
 \texttt{ir\_measures}\cite{ir-measures-2022}.
 
 \subsection{Models and Methods}
@@ -125,7 +125,7 @@ For testing the effect of fine-tuning, we fine-tune the RoBERTa base model on th
 a \texttt{MultipleNegativesRankingLoss}\cite{henderson2017efficient} loss function working directly on the
 query-positive-negative triplets. This loss function maximizes the similarity between the query and positive sample,
 while minimizing the similarity between the query and all other in-batch samples (negatives). This happens by embedding
-each document separately and employing a cross entropy loss on the pairwise cosine similarities. Based on the available
+each document separately and employing a cross-entropy loss on the pairwise cosine similarities. Based on the available
 GPU compute, we fine-tune for one full epoch with a batch size of 40, 16-bit precision, learning-rate warmup for 500
 steps and weight decay of 0.01, with all
 other parameters as default.
@@ -152,7 +152,7 @@ TinyBERT, TinyBERT Fine-Tuned). All obtained query-document rankings are evaluat
 metrics:
 \textit{Success@k}, \textit{Mean Reciprocal Rank (MRR)}, \textit{Normalized Discounted Cumulative Gain (nDCG) @ k},
 \textit{Mean Average Precision (MAP)}, \textit{Precision@k} and \textit{Recall@k} using the \texttt{ir\_measures}
-library~\cite{zhu2004recall,jarvelin2002cumulated}. These metrics are calculated at multiple cutoff vales
+library~\cite{zhu2004recall,jarvelin2002cumulated}. These metrics are calculated at multiple cutoff values
 ($k\in\{1,5,10\}$) and reported at $k=10$ in Table~\ref{tab:metrics-relish} and Table~\ref{tab:metrics-scirepeval}.
 Additionally, we employ query-level bootstrapping with 1000 iterations to obtain
 90\% confidence intervals for all metrics.
@@ -171,7 +171,7 @@ achieved by SPECTER with our fine-tuned RoBERTa base model on the SciDocs-Cite d
 dataset.
 
 As expected, the performance of the SciBERT model is lower than that of SPECTER, but still significantly better than
-the RoBERTa base model. This indicates that citation based fine-tuning (as is done in SPECTER but not in SciBERT) is
+the RoBERTa base model. This indicates that citation-based fine-tuning (as is done in SPECTER but not in SciBERT) is
 crucial for good performance in the context of research paper recommendation.
 
 When comparing the different re-ranking strategies, we observe that using the pre-trained TinyBERT cross-encoder
@@ -191,18 +191,18 @@ citation-based pre-training for research paper recommendation, the disparity is 
 characteristics, such as domain specificity and the higher number of relevant documents per query in RELISH.
 
 \subsection{Limitations and Future Work}
-Although, we carefully cleaned the datasets to minimize data leakage, there is still a chance that some documents from
+Although we carefully cleaned the datasets to minimize data leakage, there is still a chance that some documents from
 the RELISH dataset are present in the training set of the citation-triplets dataset or have been used during the
 pre-training of the embedding models.
 
 Due to limited computational resources and large dataset size, we could not employ hyperparameter tuning or extensive
 experiments on fine-tuning strategies. Thus, the fine-tuning process could be further optimized to improve performance.
 
-Additionally, due to the limited availability of high-quality expert annotated datasets for research paper
+Additionally, due to the limited availability of high-quality expert-annotated datasets for research paper
 recommendation, we could only evaluate on the RELISH dataset which is limited to the biomedical domain. Thus, the
 generalization of our results to other scientific domains is limited.
 
-Therefore, we suggest that future work should focus on obtaining larger and more diverse expert annotated datasets
+Therefore, we suggest that future work should focus on obtaining larger and more diverse expert-annotated datasets
 based on real user interactions. Furthermore, exploring more variations of fine-tuned models and different re-ranking
 techniques could provide further insights into the optimal configurations for research paper recommendation systems.
 

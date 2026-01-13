@@ -77,7 +77,7 @@ The following combinations of embedding models and re-ranking models were evalua
   - Fine-tuned RoBERTa model on the SciDocs citation triplet dataset using SentenceTransformers library.
   - **Loss function**: MultipleNegativesRankingLoss
   - **Batch size**: 40
-  - **Learning rate warm up**: 500 steps
+  - **Learning rate warm-up**: 500 steps
   - **Weight decay**: 0.01
   - **Number of epochs**: 1
   - **16 bit precision**: Enabled
@@ -87,7 +87,7 @@ The following combinations of embedding models and re-ranking models were evalua
   - Fine-tuned TinyBERT-L2-v2 model on the SciDocs citation triplet dataset using the CrossEncoder class from the SentenceTransformers library.
   - **Loss function**:  MultipleNegativesRankingLoss
   - **Batch size**: 40
-  - **Learning rate warm up**: 500 steps
+  - **Learning rate warm-up**: 500 steps
   - **Weight decay**: 0.01
   - **Number of epochs**: 1
   - **16 bit precision**: Enabled
@@ -107,7 +107,7 @@ Calculated metrics:
 
 ## Datasets
 - [**SciDocsCite**](https://huggingface.co/datasets/allenai/scirepeval/viewer/cite_prediction_new/): A dataset of citation triplets used for training and evaluation.
-- [**RELISH**](https://huggingface.co/datasets/allenai/scirepeval/viewer/relish): Scientific papers with user annotated relevance judgments for evaluation.
+- [**RELISH**](https://huggingface.co/datasets/allenai/scirepeval/viewer/relish): Scientific papers with user-annotated relevance judgments for evaluation.
 
 ## Reproducing results
 1.  **Environment Setup**: Install the required Python packages.
