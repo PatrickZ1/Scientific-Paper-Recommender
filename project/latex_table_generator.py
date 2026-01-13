@@ -15,21 +15,25 @@ DATASETS = ["relish"]
 
 if __name__ == "__main__":
     
-    results = {}
+    # results = {}
     
-    for dataset_name in DATASETS:
-        results[dataset_name] = {}
+    # for dataset_name in DATASETS:
+    #     results[dataset_name] = {}
         
-        for model_name in evaluate.EMBEDDING_MODELS:
-            for reranker_name in ['None'] + evaluate.RERANKER_MODELS:
-                try:
-                    with open(evaluate.RESULTS_DIR / f"evaluation_{evaluate.to_safe_filename(dataset_name, model_name, reranker_name)}.pkl", "rb") as f:
-                        r = pkl.load(f)
-                        if model_name not in results[dataset_name]:
-                            results[dataset_name][model_name] = {}
-                        results[dataset_name][model_name][reranker_name] = r
-                except FileNotFoundError:
-                    print(f"Skipping file for {dataset_name}, {model_name}, {reranker_name} (not found)")
+    #     for model_name in evaluate.EMBEDDING_MODELS:
+    #         for reranker_name in ['None'] + evaluate.RERANKER_MODELS:
+    #             try:
+    #                 with open(evaluate.RESULTS_DIR / f"evaluation_{evaluate.to_safe_filename(dataset_name, model_name, reranker_name)}.pkl", "rb") as f:
+    #                     r = pkl.load(f)
+    #                     if model_name not in results[dataset_name]:
+    #                         results[dataset_name][model_name] = {}
+    #                     results[dataset_name][model_name][reranker_name] = r
+    #             except FileNotFoundError:
+    #                 print(f"Skipping file for {dataset_name}, {model_name}, {reranker_name} (not found)")
+    
+    with open(evaluate.RESULTS_DIR / f"evaluation_results.pkl", "rb") as f:
+        results = pkl.load(f)
+    
 
 
     print("\\begin{tabular}{|l" + ("|" + "c" * len(METRICS)) * len(DATASETS) + "|}")
