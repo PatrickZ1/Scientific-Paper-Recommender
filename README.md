@@ -23,7 +23,7 @@ This repository is organized as follows:
   - These figures can be easily reproduced using the `project/plotting.py` script.
 - `models/`: Contains the fine-tuned models and scripts for training and evaluation.
   - Only the fine-tuned TinyBERT re-ranker is included due to size constraints.
-  - The larger fine-tuned RoBERTa embedding model can be downloaded here and placed in the `models/` directory: [RoBERTa Model Download Link](https://drive.google.com/file/d/1nmuiRPrhe48vTCJPXCImzeL-y9S1d7Q5/view?usp=drive_link).
+  - The larger fine-tuned RoBERTa embedding model can be downloaded here and placed in the `models/` directory: [RoBERTa Model Download Link](https://cloud.tugraz.at/index.php/s/kir2pPnPWA9jodE).
 - `project/`: Contains the main codebase for data processing, model training, evaluation, and other utilities:
   - `/evaluation.pkl`: Contains the evaluation results on the full test sets for all model combinations and can be used to reproduce the figures in the report.
   - `/requirements.txt`: Lists the required Python packages to run the code.
